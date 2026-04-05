@@ -17,6 +17,7 @@ const mealSuggestionSchema = z.object({
   estimatedCostPerServing: z.number(),
   stores: z.array(z.string()),
   reason: z.string(),
+  includesEstimatedPrices: z.boolean().optional(),
   matchedIngredients: z.array(
     z.object({
       ingredientName: z.string(),
@@ -24,6 +25,7 @@ const mealSuggestionSchema = z.object({
       matchedProductName: z.string().optional(),
       store: z.string().optional(),
       price: z.number().optional(),
+      priceIsEstimated: z.boolean().optional(),
       confidence: z.enum(["high", "medium", "low"]),
       note: z.string().optional(),
     })
@@ -44,6 +46,57 @@ function extractJson(text: string) {
 function buildIngredientTokens(name: string) {
   const normalized = normalizeText(name);
   return normalized.split(" ").filter((token) => token.length >= 3);
+}
+
+/** Placeholder EUR per ingredient when no current deal matches (keeps totals honest). */
+const ESTIMATED_FALLBACK_EUR = 1.5;
+
+function postProcessMealSuggestions(suggestions: MealSuggestion[]): MealSuggestion[] {
+  return suggestions.map((meal) => {
+    let filledMissingPrice = false;
+    const matchedIngredients: MatchedIngredient[] = meal.matchedIngredients.map(
+      (ing) => {
+        if (typeof ing.price === "number" && ing.price > 0) {
+          return { ...ing };
+        }
+        filledMissingPrice = true;
+        return {
+          ...ing,
+          price: ESTIMATED_FALLBACK_EUR,
+          priceIsEstimated: true,
+          note:
+            ing.note ??
+            "Estimated (no matching deal found this week).",
+        };
+      }
+    );
+
+    const total = matchedIngredients.reduce(
+      (sum, item) => sum + (item.price ?? 0),
+      0
+    );
+    const includesEstimatedPrices = matchedIngredients.some(
+      (item) => item.priceIsEstimated
+    );
+
+    return {
+      ...meal,
+      matchedIngredients,
+      estimatedTotalCost: Number(total.toFixed(2)),
+      estimatedCostPerServing: Number((total / meal.serves).toFixed(2)),
+      includesEstimatedPrices,
+      stores: [
+        ...new Set(
+          matchedIngredients
+            .map((item) => item.store)
+            .filter((value): value is string => Boolean(value))
+        ),
+      ],
+      reason: filledMissingPrice
+        ? `${meal.reason} Totals include €${ESTIMATED_FALLBACK_EUR.toFixed(2)} placeholder prices where no offer matched.`
+        : meal.reason,
+    };
+  });
 }
 
 function fallbackMatchIngredient(ingredient: string, deals: Deal[]) {
@@ -71,7 +124,9 @@ function fallbackMatcher(recipes: Recipe[], deals: Deal[]) {
               ingredientName: ingredient.name,
               amount: ingredient.amount,
               confidence: "low",
-              note: "Kein passendes Angebot gefunden.",
+              price: ESTIMATED_FALLBACK_EUR,
+              priceIsEstimated: true,
+              note: "Estimated (no matching deal found).",
             };
           }
 
@@ -91,6 +146,10 @@ function fallbackMatcher(recipes: Recipe[], deals: Deal[]) {
         0
       );
 
+      const includesEstimated = matchedIngredients.some(
+        (item) => item.priceIsEstimated
+      );
+
       return {
         recipeId: recipe.id,
         recipeName: recipe.name,
@@ -99,6 +158,7 @@ function fallbackMatcher(recipes: Recipe[], deals: Deal[]) {
         estimatedTotalCost: Number(total.toFixed(2)),
         estimatedCostPerServing: Number((total / recipe.serves).toFixed(2)),
         matchedIngredients,
+        includesEstimatedPrices: includesEstimated,
         stores: [
           ...new Set(
             matchedIngredients
@@ -106,10 +166,9 @@ function fallbackMatcher(recipes: Recipe[], deals: Deal[]) {
               .filter((value): value is string => Boolean(value))
           ),
         ],
-        reason:
-          total > 0
-            ? "Fallback-Matching ohne AI: basiert auf Namensahnlichkeit."
-            : "Zu wenige passende Angebote fur diese Woche.",
+        reason: includesEstimated
+          ? "Fallback matching (no AI): name similarity. Some prices are estimated where no offer matched."
+          : "Fallback matching (no AI): based on product name similarity.",
       };
     })
     .filter((recipe) => recipe.estimatedTotalCost > 0)
@@ -151,7 +210,7 @@ export async function matchRecipesWithDeals(recipes: Recipe[], deals: Deal[]) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return fallbackMatcher(recipes, deals);
+    return postProcessMealSuggestions(fallbackMatcher(recipes, deals));
   }
 
   const anthropic = new Anthropic({ apiKey });
@@ -159,10 +218,10 @@ export async function matchRecipesWithDeals(recipes: Recipe[], deals: Deal[]) {
   const compactRecipes = serializeRecipesForPrompt(recipes);
 
   const systemPrompt = `
-You are a grocery price-matching assistant for students in Trier.
+You are a grocery price-matching assistant for students in Germany (Marktguru offers).
 You MUST NOT invent recipes. Recipes are fixed by input.
 Your task:
-1) Match each recipe ingredient to the best available grocery offer.
+1) Match each recipe ingredient to the best available grocery offer from the deals list.
 2) Prefer lower total price while keeping matching quality reasonable.
 3) Return ONLY valid JSON array with this exact schema:
 [
@@ -191,8 +250,8 @@ Your task:
 Rules:
 - Output max 7 recipes sorted by estimatedTotalCost ascending.
 - Use Euro numeric values only (no currency symbols).
-- If ingredient cannot be matched, include it with confidence "low" and a note.
-- Use German context and grocery naming where possible.
+- If an ingredient cannot be matched to any deal, set price to 0 and confidence "low" (the app will apply a default estimate).
+- Product names may be German; store names are retailer chains from the data.
 `.trim();
 
   const userPrompt = JSON.stringify(
@@ -224,9 +283,9 @@ Rules:
 
     const parsedText = extractJson(output);
     const parsed = JSON.parse(parsedText);
-    return mealSuggestionsSchema.parse(parsed);
+    return postProcessMealSuggestions(mealSuggestionsSchema.parse(parsed));
   } catch {
-    return fallbackMatcher(recipes, deals);
+    return postProcessMealSuggestions(fallbackMatcher(recipes, deals));
   }
 }
 

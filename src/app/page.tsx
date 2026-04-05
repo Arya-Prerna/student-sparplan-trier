@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ShoppingBasket, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DealCard } from "@/components/DealCard";
@@ -10,11 +11,13 @@ import { StoreGuide } from "@/components/StoreGuide";
 import { StoreFilter } from "@/components/StoreFilter";
 import { StudentBasket } from "@/components/StudentBasket";
 import { TabNav, type AppTab } from "@/components/TabNav";
+import { ZipCodeSelector } from "@/components/ZipCodeSelector";
 import type { Deal, MealSuggestion, StoreInfo } from "@/lib/types";
 
 export default function Home() {
   const [tab, setTab] = useState<AppTab>("search");
-  const [query, setQuery] = useState("milch");
+  const [zipCode, setZipCode] = useState("54290");
+  const [query, setQuery] = useState("milk");
   const [selectedStore, setSelectedStore] = useState("");
   const [deals, setDeals] = useState<Deal[]>([]);
   const [stores, setStores] = useState<StoreInfo[]>([]);
@@ -35,7 +38,7 @@ export default function Home() {
 
     try {
       const response = await fetch(
-        `/api/search?q=${encodeURIComponent(query.trim())}&limit=30`,
+        `/api/search?q=${encodeURIComponent(query.trim())}&limit=30&zipCode=${encodeURIComponent(zipCode)}`,
         { cache: "no-store" }
       );
       const data = (await response.json()) as { deals?: Deal[]; error?: string };
@@ -49,12 +52,14 @@ export default function Home() {
     } finally {
       setSearchLoading(false);
     }
-  }, [query]);
+  }, [query, zipCode]);
 
   const loadMeals = useCallback(async () => {
     setMealsLoading(true);
     try {
-      const response = await fetch("/api/meals", { cache: "no-store" });
+      const response = await fetch(`/api/meals?zipCode=${encodeURIComponent(zipCode)}`, {
+        cache: "no-store",
+      });
       const data = (await response.json()) as {
         suggestions?: MealSuggestion[];
       };
@@ -67,7 +72,7 @@ export default function Home() {
     } finally {
       setMealsLoading(false);
     }
-  }, []);
+  }, [zipCode]);
 
   const loadStores = useCallback(async () => {
     setStoresLoading(true);
@@ -86,17 +91,32 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    void loadMeals();
     void loadStores();
-  }, [loadMeals, loadStores]);
+  }, [loadStores]);
 
-  /** Debounced Marktguru search (~400ms) — avoids hammering API on every keystroke. */
+  useEffect(() => {
+    void loadMeals();
+  }, [loadMeals]);
+
+  useEffect(() => {
+    setSelectedStore("");
+  }, [zipCode]);
+
+  /** Debounced search (~400 ms). */
   useEffect(() => {
     const handle = window.setTimeout(() => {
       void runSearch();
     }, 400);
     return () => window.clearTimeout(handle);
   }, [runSearch]);
+
+  const storesNearZip = useMemo(() => {
+    if (!zipCode) {
+      return stores;
+    }
+    const matched = stores.filter((s) => s.address?.replace(/\s/g, "").includes(zipCode));
+    return matched.length > 0 ? matched : stores;
+  }, [stores, zipCode]);
 
   const filteredDeals = useMemo(() => {
     if (!selectedStore) {
@@ -112,18 +132,33 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-[#FFF5F7]">
       <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-        <header className="mb-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-zinc-900 sm:text-3xl">Student Sparplan Trier</h1>
-          <p className="mt-2 max-w-3xl text-sm text-zinc-600 sm:text-base">
-            Vergleiche aktuelle Angebote, finde gunstige Mahlzeiten und checke Offnungszeiten -
-            alles fur Trier, alles auf einer Seite.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-500">
-            <span className="rounded-full bg-zinc-100 px-3 py-1">Trier · 54290</span>
-            <span className="rounded-full bg-zinc-100 px-3 py-1">Student budget first</span>
-            <span className="rounded-full bg-zinc-100 px-3 py-1">Weekly deal aware</span>
+        <header className="mb-6 rounded-2xl border border-[#F9D5E5] bg-white p-6 shadow-md shadow-rose-100/50">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-1 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FCE4EC] text-[#D4607A]">
+                <ShoppingBasket className="h-6 w-6" aria-hidden />
+              </span>
+              <div>
+                <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold text-[#4A2D3A] sm:text-3xl">
+                  Student Sparplan Trier
+                  <Sparkles className="h-5 w-5 text-[#E8879C]" aria-hidden />
+                </h1>
+                <p className="mt-2 max-w-3xl text-sm text-[#8B6B7B] sm:text-base">
+                  Compare live offers, cook on a budget, and check store hours — one cute page for
+                  students in the Trier area.
+                </p>
+              </div>
+            </div>
+            <ZipCodeSelector value={zipCode} onChange={setZipCode} />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs text-[#8B6B7B]">
+            <span className="rounded-full bg-[#FCE4EC] px-3 py-1 font-medium text-[#D4607A]">
+              Trier region · {zipCode}
+            </span>
+            <span className="rounded-full bg-[#FFF5F7] px-3 py-1">Student budget first</span>
+            <span className="rounded-full bg-[#FFF5F7] px-3 py-1">Deal-aware recipes</span>
           </div>
         </header>
 
@@ -142,13 +177,13 @@ export default function Home() {
               />
 
               {error ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
                   {error}
                 </div>
               ) : null}
 
               {searchLoading ? (
-                <p className="text-sm text-zinc-500">Suche lauf...</p>
+                <p className="text-sm text-[#8B6B7B]">Searching…</p>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredDeals.slice(0, 24).map((deal) => (
@@ -158,9 +193,7 @@ export default function Home() {
               )}
 
               {!searchLoading && filteredDeals.length === 0 ? (
-                <p className="text-sm text-zinc-500">
-                  Keine Angebote gefunden. Probiere einen anderen Suchbegriff.
-                </p>
+                <p className="text-sm text-[#8B6B7B]">No offers found. Try another search term.</p>
               ) : null}
 
               <StudentBasket deals={deals} />
@@ -169,15 +202,16 @@ export default function Home() {
 
           {tab === "meals" ? (
             <>
-              <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                <h2 className="text-lg font-semibold text-zinc-900">Cheapest Meals This Week</h2>
-                <p className="mt-1 text-sm text-zinc-600">
-                  Hand-kuratierte Rezepte + aktuelle Angebote + Haiku-Matching.
+              <div className="rounded-2xl border border-[#F9D5E5] bg-white p-4 shadow-md shadow-rose-100/40">
+                <h2 className="text-lg font-semibold text-[#4A2D3A]">Cheapest meals this week</h2>
+                <p className="mt-1 text-sm text-[#8B6B7B]">
+                  Curated recipes matched to current offers (Haiku). Totals include estimates when no
+                  deal matches an ingredient.
                 </p>
               </div>
 
               {mealsLoading ? (
-                <p className="text-sm text-zinc-500">Mahlzeiten werden berechnet...</p>
+                <p className="text-sm text-[#8B6B7B]">Calculating meals…</p>
               ) : (
                 <div className="grid gap-4 lg:grid-cols-2">
                   {meals.map((meal) => (
@@ -187,31 +221,27 @@ export default function Home() {
               )}
 
               {!mealsLoading && meals.length === 0 ? (
-                <p className="text-sm text-zinc-500">
-                  Noch keine Mahlzeiten verfugbar. Prufe API-Schlussel und Deal-Daten.
+                <p className="text-sm text-[#8B6B7B]">
+                  No meals available. Check your Anthropic API key and deal data.
                 </p>
               ) : null}
             </>
           ) : null}
 
           {tab === "stores" ? (
-            <StoreGuide stores={stores} loading={storesLoading} />
+            <StoreGuide stores={storesNearZip} loading={storesLoading} zipCode={zipCode} />
           ) : null}
         </section>
 
-        <footer className="mt-10 rounded-xl border border-zinc-200 bg-white p-4 text-xs text-zinc-500">
+        <footer className="mt-10 rounded-2xl border border-[#F9D5E5] bg-white p-4 text-xs text-[#8B6B7B] shadow-sm">
           <p>
-            Erweiterte Ansichten:{" "}
-            <Link className="text-zinc-800 underline" href="/compare?product=milch">
-              Preisvergleich
+            More:{" "}
+            <Link className="font-medium text-[#D4607A] underline" href="/compare?product=milk">
+              Price compare
             </Link>{" "}
             ·{" "}
-            <Link className="text-zinc-800 underline" href="/categories/all">
-              Kategorien
-            </Link>{" "}
-            ·{" "}
-            <Link className="text-zinc-800 underline" href="/deals/lidl">
-              Deals pro Markt
+            <Link className="font-medium text-[#D4607A] underline" href="/deals/lidl">
+              Deals by store
             </Link>
           </p>
         </footer>

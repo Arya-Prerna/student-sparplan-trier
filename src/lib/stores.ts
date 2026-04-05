@@ -65,7 +65,7 @@ export async function fetchStores(cacheSeconds = 60 * 60 * 24) {
         return null;
       }
 
-      const displayName = normalizeBrand(name ?? brand ?? "Supermarkt");
+      const displayName = normalizeBrand(name ?? brand ?? "Supermarket");
       const slug = slugify(displayName);
       const metadata = meta.find(
         (entry) =>

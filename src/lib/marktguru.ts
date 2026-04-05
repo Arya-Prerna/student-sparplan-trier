@@ -20,14 +20,22 @@ const MARKTGURU_CLIENT_KEY =
 
 const KNOWN_STORES = [
   "Aldi Sud",
+  "ALDI SUD",
   "Lidl",
   "Kaufland",
   "Penny",
   "Netto",
+  "Netto Marken-Discount",
   "Norma",
   "Edeka",
+  "EDEKA",
+  "REWE",
   "Thomas Philipps",
+  "nahkauf",
 ];
+
+const MARKTGURU_IMAGE_CDN =
+  process.env.MARKTGURU_IMAGE_CDN ?? "https://mg2de.b-cdn.net/api/v1";
 
 function getPathValue(input: unknown, path: string): unknown {
   if (!input || typeof input !== "object") {
@@ -67,6 +75,76 @@ function getFirstNumber(input: unknown, paths: string[]): number | undefined {
     }
   }
   return undefined;
+}
+
+function getOfferNumericId(raw: unknown): number | undefined {
+  const id = getFirstNumber(raw, ["id", "offerId"]);
+  return id !== undefined && Number.isFinite(id) ? Math.floor(id) : undefined;
+}
+
+function getImageCount(raw: unknown): number {
+  const images = getPathValue(raw, "images");
+  if (images && typeof images === "object" && "count" in (images as object)) {
+    const c = (images as Record<string, unknown>).count;
+    return typeof c === "number" && c > 0 ? c : 0;
+  }
+  return 0;
+}
+
+function buildOfferImageUrl(offerId: number): string {
+  return `${MARKTGURU_IMAGE_CDN}/offers/${offerId}/images/default/0/medium.webp`;
+}
+
+/** Marktguru puts the supermarket chain in advertisers[0].name, not brand.name. */
+function getRetailerName(raw: unknown): string | undefined {
+  const advertisers = getPathValue(raw, "advertisers");
+  if (Array.isArray(advertisers) && advertisers.length > 0) {
+    const first = advertisers[0];
+    if (first && typeof first === "object" && "name" in first) {
+      const name = (first as Record<string, unknown>).name;
+      if (typeof name === "string" && name.trim()) {
+        return name.trim();
+      }
+    }
+  }
+  return getFirstString(raw, [
+    "advertiser.name",
+    "retailer.name",
+    "shop.name",
+    "market.name",
+    "store.name",
+  ]);
+}
+
+function formatValidityDate(iso: unknown): string | undefined {
+  if (typeof iso !== "string" || !iso.trim()) {
+    return undefined;
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return undefined;
+  }
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getValidityFromRaw(raw: unknown): { validFrom?: string; validUntil?: string } {
+  const vd = getPathValue(raw, "validityDates");
+  if (!Array.isArray(vd) || vd.length === 0) {
+    return {};
+  }
+  const first = vd[0];
+  if (!first || typeof first !== "object") {
+    return {};
+  }
+  const rec = first as Record<string, unknown>;
+  return {
+    validFrom: formatValidityDate(rec.from),
+    validUntil: formatValidityDate(rec.to),
+  };
 }
 
 function collectRawOffers(payload: unknown): unknown[] {
@@ -114,7 +192,7 @@ function rawToDeal(raw: unknown, index: number): Deal | null {
       "name",
       "offerText",
       "headline",
-    ]) ?? "Unbekanntes Produkt";
+    ]) ?? "Unknown product";
 
   const price = getFirstNumber(raw, [
     "price",
@@ -149,56 +227,57 @@ function rawToDeal(raw: unknown, index: number): Deal | null {
       ? Math.round(((oldPrice - price) / oldPrice) * 100)
       : undefined);
 
-  const storeName = normalizeStoreName(
-    getFirstString(raw, [
-      "advertiser.name",
-      "retailer.name",
-      "shop.name",
-      "market.name",
-      "brand.name",
-      "store.name",
-    ]) ?? "Unbekannter Markt"
-  );
+  const retailer = getRetailerName(raw);
+  const storeName = normalizeStoreName(retailer ?? "Unknown store");
+
+  const offerNumericId = getOfferNumericId(raw);
+  const imageCount = getImageCount(raw);
+  const directImageUrl = getFirstString(raw, [
+    "image.large",
+    "image.medium",
+    "image.small",
+    "images.urls.large",
+    "images.urls.medium",
+    "images.large",
+    "imageUrl",
+    "product.image",
+    "product.imageUrl",
+  ]);
+  const imageUrl =
+    directImageUrl ??
+    (offerNumericId !== undefined && imageCount > 0
+      ? buildOfferImageUrl(offerNumericId)
+      : undefined);
+
+  const { validFrom, validUntil } = getValidityFromRaw(raw);
 
   const productId =
     getFirstString(raw, ["id", "offerId", "product.id", "product.ean"]) ??
     `${normalizeText(productName)}-${index}`;
 
   return {
-    id: `${normalizeText(productId)}-${normalizeText(storeName)}`,
+    id: `${normalizeText(String(productId))}-${normalizeText(storeName)}`,
     productName,
     normalizedProductName: normalizeText(productName),
     store: storeName,
     price,
     oldPrice,
     discountPercent,
-    imageUrl: getFirstString(raw, [
-      "image.large",
-      "image.medium",
-      "image.small",
-      "images.large",
-      "imageUrl",
-      "product.image",
-      "product.imageUrl",
-    ]),
-    validFrom: getFirstString(raw, [
-      "validFrom",
-      "validity.from",
-      "offerPeriod.start",
-      "startDate",
-    ]),
-    validUntil: getFirstString(raw, [
-      "validTo",
-      "validity.to",
-      "offerPeriod.end",
-      "endDate",
-    ]),
+    imageUrl,
+    validFrom,
+    validUntil,
     category: getFirstString(raw, [
+      "categories.0.name",
       "category.name",
       "product.category",
       "category",
     ]),
-    unit: getFirstString(raw, ["unit", "product.unit", "price.unit"]),
+    unit: getFirstString(raw, [
+      "unit.shortName",
+      "unit.name",
+      "product.unit",
+      "unit",
+    ]),
     source: "marktguru",
     raw,
   };
@@ -262,7 +341,7 @@ export async function searchDeals(
   return dedupeDeals(deals).sort((a, b) => a.price - b.price);
 }
 
-export async function fetchTopDealsForMealMatching() {
+export async function fetchTopDealsForMealMatching(zipCode: string = DEFAULT_ZIP_CODE) {
   const stapleQueries = [
     "pasta",
     "reis",
@@ -279,7 +358,7 @@ export async function fetchTopDealsForMealMatching() {
   ];
 
   const all = await Promise.all(
-    stapleQueries.map((term) => searchDeals(term, { limit: 12 }))
+    stapleQueries.map((term) => searchDeals(term, { limit: 12, zipCode }))
   );
 
   const flattened = dedupeDeals(all.flat());

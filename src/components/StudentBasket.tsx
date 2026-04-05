@@ -39,26 +39,26 @@ export function StudentBasket({ deals }: StudentBasketProps) {
     .sort((a, b) => a.total - b.total);
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <h3 className="text-base font-semibold text-zinc-900">Student Basket (Demo)</h3>
-      <p className="mt-1 text-sm text-zinc-600">
-        Beispielkorb aus 10 Basics. Zeigt, welcher Markt aktuell am gunstigsten ist.
+    <section className="rounded-2xl border border-[#F9D5E5] bg-white p-4 shadow-md shadow-rose-100/30">
+      <h3 className="text-base font-semibold text-[#4A2D3A]">Sample student basket</h3>
+      <p className="mt-1 text-sm text-[#8B6B7B]">
+        Ten staple searches — which retailer looks cheapest for your current results?
       </p>
 
       <div className="mt-3 space-y-2">
         {totals.length === 0 ? (
-          <p className="text-sm text-zinc-500">Noch keine passenden Deals gefunden.</p>
+          <p className="text-sm text-[#8B6B7B]">No matching deals for staples in this search yet.</p>
         ) : (
           totals.map((entry, index) => (
             <div
               key={entry.store}
-              className="flex items-center justify-between rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2"
+              className="flex items-center justify-between rounded-xl border border-[#F9D5E5] bg-[#FFF5F7] px-3 py-2"
             >
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-zinc-500">#{index + 1}</span>
-                <span className="text-sm font-medium text-zinc-900">{entry.store}</span>
+                <span className="text-xs font-semibold text-[#E8879C]">#{index + 1}</span>
+                <span className="text-sm font-medium text-[#4A2D3A]">{entry.store}</span>
               </div>
-              <span className="text-sm font-semibold text-zinc-900">
+              <span className="text-sm font-semibold text-[#4A2D3A]">
                 {formatCurrency(entry.total)}
               </span>
             </div>
@@ -68,4 +68,3 @@ export function StudentBasket({ deals }: StudentBasketProps) {
     </section>
   );
 }
-

@@ -29,7 +29,7 @@ export function parseNumber(value: unknown): number | undefined {
 }
 
 export function formatCurrency(value: number) {
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat("en-IE", {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 2,

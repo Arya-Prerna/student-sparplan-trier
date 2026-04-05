@@ -45,6 +45,8 @@ export interface MatchedIngredient {
   matchedProductName?: string;
   store?: string;
   price?: number;
+  /** True when price is a placeholder because no deal matched (not a shelf price). */
+  priceIsEstimated?: boolean;
   confidence: "high" | "medium" | "low";
   note?: string;
 }
@@ -59,6 +61,8 @@ export interface MealSuggestion {
   matchedIngredients: MatchedIngredient[];
   stores: string[];
   reason: string;
+  /** True if any ingredient used an estimated fallback price. */
+  includesEstimatedPrices?: boolean;
 }
 
 export interface StoreInfo {

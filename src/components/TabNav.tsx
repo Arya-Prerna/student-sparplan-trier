@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 export type AppTab = "search" | "meals" | "stores";
 
 const TABS: Array<{ id: AppTab; label: string; description: string }> = [
-  { id: "search", label: "Angebote suchen", description: "Finde den besten Preis" },
-  { id: "meals", label: "Gunstig kochen", description: "Cheapest meals diese Woche" },
-  { id: "stores", label: "Laden-Guide", description: "Offnungszeiten und Adressen" },
+  { id: "search", label: "Find deals", description: "Search current offers" },
+  { id: "meals", label: "Budget meals", description: "Cheapest meals this week" },
+  { id: "stores", label: "Store guide", description: "Hours & addresses" },
 ];
 
 interface TabNavProps {
@@ -17,7 +17,7 @@ interface TabNavProps {
 
 export function TabNav({ value, onChange }: TabNavProps) {
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#F9D5E5] bg-white p-3 shadow-md shadow-rose-100/50 sm:grid-cols-3">
       {TABS.map((tab) => {
         const active = tab.id === value;
         return (
@@ -26,14 +26,14 @@ export function TabNav({ value, onChange }: TabNavProps) {
             type="button"
             onClick={() => onChange(tab.id)}
             className={cn(
-              "rounded-lg border px-4 py-3 text-left transition",
+              "rounded-xl border px-4 py-3 text-left transition",
               active
-                ? "border-zinc-900 bg-zinc-900 text-white"
-                : "border-zinc-200 bg-zinc-50 text-zinc-800 hover:bg-zinc-100"
+                ? "border-[#D4607A] bg-[#D4607A] text-white shadow-md"
+                : "border-[#F9D5E5] bg-[#FFF5F7] text-[#4A2D3A] hover:bg-[#FCE4EC]"
             )}
           >
             <p className="text-sm font-semibold">{tab.label}</p>
-            <p className={cn("text-xs", active ? "text-zinc-200" : "text-zinc-500")}>
+            <p className={cn("text-xs", active ? "text-rose-100" : "text-[#8B6B7B]")}>
               {tab.description}
             </p>
           </button>
@@ -42,4 +42,3 @@ export function TabNav({ value, onChange }: TabNavProps) {
     </div>
   );
 }
-

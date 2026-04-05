@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Student Sparplan Trier",
   description:
-    "Student-focused grocery savings app for Trier: deals, cheap meals, and store hours.",
+    "Student grocery savings for Trier: live deals, budget meals, and store hours — soft & simple.",
 };
 
 export default function RootLayout({

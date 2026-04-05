@@ -46,32 +46,36 @@ export default function DealsByStorePage() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-zinc-900">
-        Deals pro Markt{selectedStore ? `: ${selectedStore}` : ""}
-      </h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        Alle aktuellen Angebote fur den ausgewahlten Supermarkt.
-      </p>
+    <main className="min-h-screen bg-[#FFF5F7]">
+      <div className="mx-auto w-full max-w-6xl px-4 py-8">
+        <h1 className="text-2xl font-bold text-[#4A2D3A]">
+          Deals by store{selectedStore ? `: ${selectedStore}` : ""}
+        </h1>
+        <p className="mt-2 text-sm text-[#8B6B7B]">
+          Current offers for the selected supermarket chain.
+        </p>
 
-      <div className="mt-4">
-        <StoreFilter stores={stores} selectedStore={selectedStore} onSelect={setSelectedStore} />
+        <div className="mt-4">
+          <StoreFilter stores={stores} selectedStore={selectedStore} onSelect={setSelectedStore} />
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {loading ? (
+            <p className="text-sm text-[#8B6B7B]">Loading deals…</p>
+          ) : deals.length === 0 ? (
+            <p className="text-sm text-[#8B6B7B]">No deals found.</p>
+          ) : (
+            deals.map((deal) => <DealCard key={deal.id} deal={deal} />)
+          )}
+        </div>
+
+        <Link
+          href="/"
+          className="mt-6 inline-block text-sm font-medium text-[#D4607A] underline"
+        >
+          Back to home
+        </Link>
       </div>
-
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {loading ? (
-          <p className="text-sm text-zinc-500">Deals werden geladen...</p>
-        ) : deals.length === 0 ? (
-          <p className="text-sm text-zinc-500">Keine Deals gefunden.</p>
-        ) : (
-          deals.map((deal) => <DealCard key={deal.id} deal={deal} />)
-        )}
-      </div>
-
-      <Link href="/" className="mt-6 inline-block text-sm text-zinc-700 underline">
-        Zuruck zur Startseite
-      </Link>
     </main>
   );
 }
-

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 
 import { fetchTopDealsForMealMatching } from "@/lib/marktguru";
@@ -17,26 +17,30 @@ async function loadRecipes() {
   return JSON.parse(content) as Recipe[];
 }
 
-async function buildMealSuggestions() {
+async function buildMealSuggestions(zipCode: string) {
   const [recipes, deals] = await Promise.all([
     loadRecipes(),
-    fetchTopDealsForMealMatching(),
+    fetchTopDealsForMealMatching(zipCode),
   ]);
 
   const suggestions = await matchRecipesWithDeals(recipes, deals);
   return { suggestions, sourceDealsCount: deals.length };
 }
 
-const getCachedMealPayload = unstable_cache(buildMealSuggestions, ["meal-suggestions"], {
-  revalidate: 21600,
-});
+export async function GET(request: NextRequest) {
+  const zipCode = request.nextUrl.searchParams.get("zipCode") ?? "54290";
 
-export async function GET() {
   try {
+    const getCachedMealPayload = unstable_cache(
+      () => buildMealSuggestions(zipCode),
+      ["meal-suggestions", zipCode],
+      { revalidate: 21600 }
+    );
     const { suggestions, sourceDealsCount } = await getCachedMealPayload();
 
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
+      zipCode,
       sourceDealsCount,
       suggestions,
     });

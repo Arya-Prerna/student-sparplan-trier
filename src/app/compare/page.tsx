@@ -9,11 +9,11 @@ import type { Deal } from "@/lib/types";
 export default function ComparePage() {
   const [product] = useState(() => {
     if (typeof window === "undefined") {
-      return "milch";
+      return "milk";
     }
 
     const value = new URLSearchParams(window.location.search).get("product");
-    return value?.trim() ? value.trim() : "milch";
+    return value?.trim() ? value.trim() : "milk";
   });
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,27 +37,31 @@ export default function ComparePage() {
     };
   }, [product]);
 
-  const heading = useMemo(() => product.trim() || "Produkt", [product]);
+  const heading = useMemo(() => product.trim() || "Product", [product]);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-zinc-900">Preisvergleich: {heading}</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        Gleicher Suchbegriff, mehrere Markte, nach Preis sortiert.
-      </p>
+    <main className="min-h-screen bg-[#FFF5F7]">
+      <div className="mx-auto w-full max-w-5xl px-4 py-8">
+        <h1 className="text-2xl font-bold text-[#4A2D3A]">Price compare: {heading}</h1>
+        <p className="mt-2 text-sm text-[#8B6B7B]">
+          Same search term across retailers — sorted cheapest first.
+        </p>
 
-      <div className="mt-4">
-        {loading ? (
-          <p className="text-sm text-zinc-500">Vergleich wird geladen...</p>
-        ) : (
-          <PriceTable deals={deals} />
-        )}
+        <div className="mt-4">
+          {loading ? (
+            <p className="text-sm text-[#8B6B7B]">Loading comparison…</p>
+          ) : (
+            <PriceTable deals={deals} />
+          )}
+        </div>
+
+        <Link
+          href="/"
+          className="mt-6 inline-block text-sm font-medium text-[#D4607A] underline"
+        >
+          Back to home
+        </Link>
       </div>
-
-      <Link href="/" className="mt-6 inline-block text-sm text-zinc-700 underline">
-        Zuruck zur Startseite
-      </Link>
     </main>
   );
 }
-
