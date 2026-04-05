@@ -1,38 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
+import { fetchOverpassSupermarkets } from "@/lib/overpass";
 import { normalizeText, slugify } from "@/lib/normalize";
 import type { StoreInfo, StoreMeta } from "@/lib/types";
-
-const OVERPASS_ENDPOINT =
-  process.env.OVERPASS_API_URL ?? "https://overpass-api.de/api/interpreter";
-
-const OVERPASS_QUERY = `
-[out:json][timeout:25];
-area["name"="Trier"]["boundary"="administrative"]->.searchArea;
-(
-  node["shop"="supermarket"](area.searchArea);
-  way["shop"="supermarket"](area.searchArea);
-  relation["shop"="supermarket"](area.searchArea);
-);
-out center tags;
-`;
-
-interface OverpassElement {
-  type: "node" | "way" | "relation";
-  id: number;
-  lat?: number;
-  lon?: number;
-  center?: {
-    lat: number;
-    lon: number;
-  };
-  tags?: Record<string, string>;
-}
-
-interface OverpassResponse {
-  elements?: OverpassElement[];
-}
 
 function buildAddress(tags: Record<string, string>) {
   const street = tags["addr:street"];
@@ -81,22 +52,7 @@ function normalizeBrand(value: string) {
 }
 
 export async function fetchStores(cacheSeconds = 60 * 60 * 24) {
-  const response = await fetch(OVERPASS_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "content-type": "text/plain;charset=UTF-8",
-    },
-    body: OVERPASS_QUERY,
-    next: {
-      revalidate: cacheSeconds,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Overpass request failed (${response.status})`);
-  }
-
-  const payload = (await response.json()) as OverpassResponse;
+  const payload = await fetchOverpassSupermarkets(cacheSeconds);
   const elements = payload.elements ?? [];
   const meta = await loadStoreMeta();
 

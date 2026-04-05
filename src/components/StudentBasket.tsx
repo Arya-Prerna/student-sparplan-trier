@@ -22,11 +22,11 @@ export function StudentBasket({ deals }: StudentBasketProps) {
   const byStore = new Map<string, number>();
 
   for (const item of STAPLE_ITEMS) {
-    const bestByStore = deals
+    const cheapestForItem = deals
       .filter((deal) => deal.normalizedProductName.includes(item))
       .sort((a, b) => a.price - b.price);
 
-    const best = bestByStore[0];
+    const best = cheapestForItem[0];
     if (!best) {
       continue;
     }

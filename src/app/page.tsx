@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DealCard } from "@/components/DealCard";
 import { MealCard } from "@/components/MealCard";
 import { SearchBar } from "@/components/SearchBar";
-import { StoreCard } from "@/components/StoreCard";
+import { StoreGuide } from "@/components/StoreGuide";
 import { StoreFilter } from "@/components/StoreFilter";
 import { StudentBasket } from "@/components/StudentBasket";
 import { TabNav, type AppTab } from "@/components/TabNav";
@@ -86,10 +86,17 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    void runSearch();
     void loadMeals();
     void loadStores();
-  }, [loadMeals, loadStores, runSearch]);
+  }, [loadMeals, loadStores]);
+
+  /** Debounced Marktguru search (~400ms) — avoids hammering API on every keystroke. */
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      void runSearch();
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [runSearch]);
 
   const filteredDeals = useMemo(() => {
     if (!selectedStore) {
@@ -188,30 +195,7 @@ export default function Home() {
           ) : null}
 
           {tab === "stores" ? (
-            <>
-              <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                <h2 className="text-lg font-semibold text-zinc-900">Store Guide Trier</h2>
-                <p className="mt-1 text-sm text-zinc-600">
-                  Adressen + Offnungszeiten aus OpenStreetMap Overpass API.
-                </p>
-              </div>
-
-              {storesLoading ? (
-                <p className="text-sm text-zinc-500">Ladeninfos werden geladen...</p>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {stores.map((store) => (
-                    <StoreCard key={store.id} store={store} />
-                  ))}
-                </div>
-              )}
-
-              {!storesLoading && stores.length === 0 ? (
-                <p className="text-sm text-zinc-500">
-                  Keine Ladeninfos verfugbar. Overpass API war moglicherweise nicht erreichbar.
-                </p>
-              ) : null}
-            </>
+            <StoreGuide stores={stores} loading={storesLoading} />
           ) : null}
         </section>
 
