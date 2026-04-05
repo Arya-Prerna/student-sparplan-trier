@@ -93,11 +93,14 @@ Completed:
 8. Initialized git repository (`main`) and created first commit:
    - commit: `65665a3`
    - message: `docs: bootstrap product documentation and execution plan`
+9. Connected and pushed to public GitHub repository:
+   - repo: `https://github.com/Arya-Prerna/student-sparplan-trier`
+   - branch: `main`
+   - latest commit at push time: `d018dfe`
 
 Pending:
 
-1. Create/connect public GitHub repo.
-2. Push branch to GitHub.
+1. Start application implementation (Phase 1 scaffold).
 
 ---
 
