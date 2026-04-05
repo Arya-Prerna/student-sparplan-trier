@@ -4,9 +4,9 @@ import { z } from "zod";
 import { normalizeText } from "@/lib/normalize";
 import type { Deal, MatchedIngredient, MealSuggestion, Recipe } from "@/lib/types";
 
-/** Plan default: Haiku for fuzzy ingredient ↔ offer matching (override via ANTHROPIC_MODEL). */
+/** Default: Haiku 4.5 for fuzzy ingredient ↔ offer matching (override via ANTHROPIC_MODEL). */
 const DEFAULT_MODEL =
-  process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-20241022";
+  process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
 
 const mealSuggestionSchema = z.object({
   recipeId: z.string(),
