@@ -32,8 +32,12 @@ export function DealCard({ deal }: DealCardProps) {
             <span className="rounded-full bg-zinc-100 px-2 py-1 font-medium text-zinc-700">
               {deal.store}
             </span>
-            {deal.validUntil ? (
-              <span className="text-zinc-500">gultig bis {deal.validUntil}</span>
+            {deal.validFrom || deal.validUntil ? (
+              <span className="text-zinc-500">
+                {deal.validFrom ? `ab ${deal.validFrom}` : null}
+                {deal.validFrom && deal.validUntil ? " · " : null}
+                {deal.validUntil ? `bis ${deal.validUntil}` : null}
+              </span>
             ) : null}
           </div>
         </div>

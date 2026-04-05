@@ -330,5 +330,59 @@
       { "name": "Tomaten", "amount": "300g", "category": "produce" }
     ],
     "tags": ["vegetarian", "quick"]
+  },
+  {
+    "id": "griechischer-bauernsalat",
+    "name": "Griechischer Bauernsalat",
+    "serves": 2,
+    "prepMinutes": 15,
+    "ingredients": [
+      { "name": "Gurke", "amount": "2 Stuck", "category": "produce" },
+      { "name": "Tomaten", "amount": "400g", "category": "produce" },
+      { "name": "Feta", "amount": "200g", "category": "dairy" },
+      { "name": "Oliven", "amount": "1 Glas", "category": "canned" },
+      { "name": "Zwiebeln", "amount": "1 Stuck", "category": "produce" }
+    ],
+    "tags": ["vegetarian", "fresh", "cheap"]
+  },
+  {
+    "id": "pfannkuchen-suess",
+    "name": "Pfannkuchen (suß)",
+    "serves": 2,
+    "prepMinutes": 25,
+    "ingredients": [
+      { "name": "Mehl", "amount": "200g", "category": "bakery" },
+      { "name": "Eier", "amount": "3 Stuck", "category": "dairy" },
+      { "name": "Milch", "amount": "300ml", "category": "dairy" },
+      { "name": "Nutella", "amount": "1 Glas", "category": "sauces" }
+    ],
+    "tags": ["sweet", "student-classic"]
+  },
+  {
+    "id": "couscous-gemuese",
+    "name": "Couscous-Gemuse-Pfanne",
+    "serves": 2,
+    "prepMinutes": 20,
+    "ingredients": [
+      { "name": "Couscous", "amount": "250g", "category": "grains" },
+      { "name": "Zucchini", "amount": "2 Stuck", "category": "produce" },
+      { "name": "Paprika", "amount": "1 Stuck", "category": "produce" },
+      { "name": "Passierte Tomaten", "amount": "200ml", "category": "canned" }
+    ],
+    "tags": ["vegetarian", "quick", "meal-prep"]
+  },
+  {
+    "id": "bohnen-reis-pfanne",
+    "name": "Bohnen-Reis-Pfanne",
+    "serves": 3,
+    "prepMinutes": 28,
+    "ingredients": [
+      { "name": "Reis", "amount": "400g", "category": "grains" },
+      { "name": "Kidneybohnen", "amount": "2 Dosen", "category": "canned" },
+      { "name": "Zwiebeln", "amount": "2 Stuck", "category": "produce" },
+      { "name": "Knoblauch", "amount": "3 Zehen", "category": "produce" },
+      { "name": "Paprika", "amount": "1 Stuck", "category": "produce" }
+    ],
+    "tags": ["vegan", "cheap", "filling"]
   }
 ]

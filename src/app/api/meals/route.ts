@@ -2,10 +2,14 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 
 import { fetchTopDealsForMealMatching } from "@/lib/marktguru";
 import { matchRecipesWithDeals } from "@/lib/recipe-matcher";
 import type { Recipe } from "@/lib/types";
+
+/** Match plan: cache cheapest-meals computation for 6 hours (21600s). */
+export const revalidate = 21600;
 
 async function loadRecipes() {
   const filePath = path.join(process.cwd(), "data", "recipes.json");
@@ -13,18 +17,27 @@ async function loadRecipes() {
   return JSON.parse(content) as Recipe[];
 }
 
+async function buildMealSuggestions() {
+  const [recipes, deals] = await Promise.all([
+    loadRecipes(),
+    fetchTopDealsForMealMatching(),
+  ]);
+
+  const suggestions = await matchRecipesWithDeals(recipes, deals);
+  return { suggestions, sourceDealsCount: deals.length };
+}
+
+const getCachedMealPayload = unstable_cache(buildMealSuggestions, ["meal-suggestions"], {
+  revalidate: 21600,
+});
+
 export async function GET() {
   try {
-    const [recipes, deals] = await Promise.all([
-      loadRecipes(),
-      fetchTopDealsForMealMatching(),
-    ]);
-
-    const suggestions = await matchRecipesWithDeals(recipes, deals);
+    const { suggestions, sourceDealsCount } = await getCachedMealPayload();
 
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
-      sourceDealsCount: deals.length,
+      sourceDealsCount,
       suggestions,
     });
   } catch (error) {
