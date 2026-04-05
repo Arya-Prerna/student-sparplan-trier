@@ -84,3 +84,13 @@ export interface StoreMeta {
   budgetRating: 1 | 2 | 3 | 4 | 5;
 }
 
+/** AI-curated deal for the student homepage strip. */
+export interface StudentPick {
+  productName: string;
+  store: string;
+  price: number;
+  imageUrl?: string;
+  reason: string;
+  discountPercent?: number;
+}
+

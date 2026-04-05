@@ -284,7 +284,8 @@ Rules:
     const parsedText = extractJson(output);
     const parsed = JSON.parse(parsedText);
     return postProcessMealSuggestions(mealSuggestionsSchema.parse(parsed));
-  } catch {
+  } catch (err) {
+    console.error("[recipe-matcher] Haiku call failed, using fallback:", err);
     return postProcessMealSuggestions(fallbackMatcher(recipes, deals));
   }
 }

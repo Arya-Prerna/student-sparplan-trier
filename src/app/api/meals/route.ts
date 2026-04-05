@@ -8,9 +8,6 @@ import { fetchTopDealsForMealMatching } from "@/lib/marktguru";
 import { matchRecipesWithDeals } from "@/lib/recipe-matcher";
 import type { Recipe } from "@/lib/types";
 
-/** Match plan: cache cheapest-meals computation for 6 hours (21600s). */
-export const revalidate = 21600;
-
 async function loadRecipes() {
   const filePath = path.join(process.cwd(), "data", "recipes.json");
   const content = await fs.readFile(filePath, "utf8");

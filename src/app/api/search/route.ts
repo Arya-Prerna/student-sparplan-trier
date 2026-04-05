@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { searchDeals } from "@/lib/marktguru";
+import { dedupeDeals, searchDeals } from "@/lib/marktguru";
+import { expandSearchQueries, rankSearchDeals } from "@/lib/searchSynonyms";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
@@ -15,10 +16,25 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const deals = await searchDeals(q, {
-      zipCode,
-      limit: Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 50) : 24,
-    });
+    const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 50) : 24;
+    const queries = expandSearchQueries(q);
+    const perQuery = Math.min(
+      50,
+      Math.max(12, Math.ceil((safeLimit * 1.5) / Math.max(queries.length, 1)))
+    );
+
+    const batches = await Promise.all(
+      queries.map((query) =>
+        searchDeals(query, {
+          zipCode,
+          limit: perQuery,
+        })
+      )
+    );
+
+    const merged = dedupeDeals(batches.flat());
+    const deals = rankSearchDeals(merged, q).slice(0, safeLimit);
+
     return NextResponse.json({ deals });
   } catch (error) {
     return NextResponse.json(

@@ -283,7 +283,7 @@ function rawToDeal(raw: unknown, index: number): Deal | null {
   };
 }
 
-function dedupeDeals(deals: Deal[]) {
+export function dedupeDeals(deals: Deal[]) {
   const seen = new Set<string>();
   const result: Deal[] = [];
 

@@ -10,9 +10,10 @@ import { SearchBar } from "@/components/SearchBar";
 import { StoreGuide } from "@/components/StoreGuide";
 import { StoreFilter } from "@/components/StoreFilter";
 import { StudentBasket } from "@/components/StudentBasket";
+import { StudentPicks } from "@/components/StudentPicks";
 import { TabNav, type AppTab } from "@/components/TabNav";
 import { ZipCodeSelector } from "@/components/ZipCodeSelector";
-import type { Deal, MealSuggestion, StoreInfo } from "@/lib/types";
+import type { Deal, MealSuggestion, StoreInfo, StudentPick } from "@/lib/types";
 
 export default function Home() {
   const [tab, setTab] = useState<AppTab>("search");
@@ -22,9 +23,11 @@ export default function Home() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [stores, setStores] = useState<StoreInfo[]>([]);
   const [meals, setMeals] = useState<MealSuggestion[]>([]);
+  const [studentPicks, setStudentPicks] = useState<StudentPick[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [storesLoading, setStoresLoading] = useState(false);
   const [mealsLoading, setMealsLoading] = useState(false);
+  const [picksLoading, setPicksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const runSearch = useCallback(async () => {
@@ -53,6 +56,25 @@ export default function Home() {
       setSearchLoading(false);
     }
   }, [query, zipCode]);
+
+  const loadStudentPicks = useCallback(async () => {
+    setPicksLoading(true);
+    try {
+      const response = await fetch(
+        `/api/student-picks?zipCode=${encodeURIComponent(zipCode)}`,
+        { cache: "no-store" }
+      );
+      const data = (await response.json()) as { picks?: StudentPick[] };
+      if (!response.ok) {
+        throw new Error("Could not load student picks.");
+      }
+      setStudentPicks(data.picks ?? []);
+    } catch {
+      setStudentPicks([]);
+    } finally {
+      setPicksLoading(false);
+    }
+  }, [zipCode]);
 
   const loadMeals = useCallback(async () => {
     setMealsLoading(true);
@@ -97,6 +119,10 @@ export default function Home() {
   useEffect(() => {
     void loadMeals();
   }, [loadMeals]);
+
+  useEffect(() => {
+    void loadStudentPicks();
+  }, [loadStudentPicks]);
 
   useEffect(() => {
     setSelectedStore("");
@@ -169,6 +195,7 @@ export default function Home() {
         <section className="space-y-4">
           {tab === "search" ? (
             <>
+              <StudentPicks picks={studentPicks} loading={picksLoading} />
               <SearchBar value={query} onChange={setQuery} onSubmit={() => void runSearch()} />
               <StoreFilter
                 stores={storeNames}
