@@ -19,7 +19,7 @@ Keep this file updated after every meaningful change.
 - Project: Student Sparplan Trier
 - Owner: Prerna Arya
 - Started: 2026-04-05
-- Current Phase: MVP implementation complete, deployment pending
+- Current Phase: MVP complete on `main`; production deploy requires `vercel login` + env secrets
 - Source of truth docs:
   - `PRD.md`
   - `docs/IMPLEMENTATION_PLAN.md`
@@ -155,8 +155,18 @@ Completed:
 Pending:
 
 1. Set real API keys in `.env.local` (local) and Vercel project secrets.
-2. Deploy to Vercel production.
+2. Deploy to Vercel production (`npx vercel --prod` after `vercel login`, or GitHub integration).
 3. Confirm production behavior on live URL.
+
+### Session: 2026-04-05 (Plan alignment — Overpass module + Store Guide)
+
+Completed:
+
+1. Added `src/lib/overpass.ts` — dedicated Overpass API client (`fetchOverpassSupermarkets`, shared query/types).
+2. Refactored `src/lib/stores.ts` to use the Overpass client and keep merge/dedupe + `stores-meta.json` notes.
+3. Added `src/components/StoreGuide.tsx` for the Laden-Guide tab (wraps `StoreCard` list + loading/empty states).
+4. Debounced product search (~400ms) and split effects so meals/stores are not refetched on every keystroke.
+5. Pushed to public GitHub: commit `31d4fc4` on `main`.
 
 ---
 
