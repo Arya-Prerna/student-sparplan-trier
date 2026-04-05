@@ -19,7 +19,7 @@ Keep this file updated after every meaningful change.
 - Project: Student Sparplan Trier
 - Owner: Prerna Arya
 - Started: 2026-04-05
-- Current Phase: Documentation and repository setup
+- Current Phase: MVP implementation complete, deployment pending
 - Source of truth docs:
   - `PRD.md`
   - `docs/IMPLEMENTATION_PLAN.md`
@@ -57,6 +57,31 @@ Keep this file updated after every meaningful change.
 - Important guardrail:
   - no AI-generated recipes, only AI-assisted matching on curated recipe set
 
+### 2026-04-05: MVP App Implementation
+
+- Scaffolded Next.js 16 + TypeScript + Tailwind in repo root.
+- Added API routes:
+  - `/api/search`
+  - `/api/meals`
+  - `/api/stores`
+  - `/api/products`
+  - `/api/deals`
+  - `/api/cron/fetch-deals`
+- Implemented integrations:
+  - Marktguru offer client with normalization
+  - Overpass store-hours client
+  - Haiku recipe-to-offer matching with strict JSON parsing and fallback matcher
+- Added curated dataset:
+  - `data/recipes.json` (24 recipes)
+  - `data/stores-meta.json`
+- Built UI:
+  - home page with 3 tabs (search, meals, store guide)
+  - compare page
+  - category page
+  - deals-by-store page
+- Added deployment config:
+  - `vercel.json` weekly cron cache warm endpoint
+
 ---
 
 ## Decision Log (Authoritative)
@@ -71,6 +96,8 @@ Keep this file updated after every meaningful change.
 | D-006 | 2026-04-05 | Use Overpass for store hours | Free and sufficient for MVP | Avoid Google Maps billing | Accepted |
 | D-007 | 2026-04-05 | Defer Wasgau to v2 | Missing in primary source and not blocking launch | Keeps scope realistic | Accepted |
 | D-008 | 2026-04-05 | Never commit API keys | Public repo requirement + security best practice | Prevents credential leakage | Accepted |
+| D-009 | 2026-04-05 | Add deterministic fallback for meal matching | App should still work if Anthropic key is missing or API fails | Better reliability and lower operational risk | Accepted |
+| D-010 | 2026-04-05 | Keep cron endpoint as cache warmer only | Supports scheduled refresh without DB complexity | Preserves no-database architecture while enabling weekly updates | Accepted |
 
 ---
 
@@ -101,6 +128,35 @@ Completed:
 Pending:
 
 1. Start application implementation (Phase 1 scaffold).
+
+### Session: 2026-04-05 (Implementation Sweep)
+
+Completed:
+
+1. Installed Node.js and scaffolded Next.js app in the existing documentation repo.
+2. Added core libs and dependencies (`@anthropic-ai/sdk`, `zod`, `cheerio`, UI helpers).
+3. Implemented `src/lib/marktguru.ts` with resilient normalization and caching.
+4. Implemented `src/lib/stores.ts` for Overpass supermarket + opening hour retrieval.
+5. Implemented `src/lib/recipe-matcher.ts` with:
+   - strict JSON schema validation for model output
+   - fallback deterministic matcher when AI is unavailable
+6. Added API routes for search, meals, stores, products, deals, and cron warm.
+7. Added UI components and pages for:
+   - search experience
+   - meal recommendations
+   - store guide
+   - compare and category browsing
+8. Added curated data sources (`data/recipes.json`, `data/stores-meta.json`).
+9. Added deployment config (`vercel.json`) and local env template wiring.
+10. Passed quality gates:
+    - `npm run lint`
+    - `npm run build`
+
+Pending:
+
+1. Set real API keys in `.env.local` (local) and Vercel project secrets.
+2. Deploy to Vercel production.
+3. Confirm production behavior on live URL.
 
 ---
 
@@ -166,14 +222,18 @@ Primary external references used in planning:
 | 2026-04-05 | `docs/IMPLEMENTATION_PLAN.md` | Added implementation plan snapshot |
 | 2026-04-05 | `.gitignore` | Added standard ignores and secret protection |
 | 2026-04-05 | `.env.example` | Added environment variable template |
+| 2026-04-05 | `src/**` | Added full Next.js app implementation (API routes, pages, components, libs) |
+| 2026-04-05 | `data/recipes.json` | Added curated recipe dataset for meal matching |
+| 2026-04-05 | `data/stores-meta.json` | Added Trier store notes and budget metadata |
+| 2026-04-05 | `vercel.json` | Added weekly cron warm endpoint configuration |
 
 ---
 
 ## Open Items
 
-1. Confirm repository URL and public visibility after push.
-2. Confirm final naming convention for app branding.
-3. Start implementation phase (scaffold and API adapters).
+1. Add production keys to Vercel project settings.
+2. Perform first production deploy and smoke-test all API routes.
+3. Decide Wasgau v2 integration path (direct source vs aggregator).
 
 ---
 

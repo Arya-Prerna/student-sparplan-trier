@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "aldi-sud",
+    "name": "Aldi Sud",
+    "notes": "Sehr gut fur Basics und günstige Eigenmarken.",
+    "budgetRating": 5
+  },
+  {
+    "slug": "lidl",
+    "name": "Lidl",
+    "notes": "Starke Wochenangebote bei Obst, Gemuse und Backwaren.",
+    "budgetRating": 5
+  },
+  {
+    "slug": "kaufland",
+    "name": "Kaufland",
+    "notes": "Große Auswahl, oft gute Angebote fur Markenprodukte.",
+    "budgetRating": 4
+  },
+  {
+    "slug": "penny",
+    "name": "Penny",
+    "notes": "Oft sehr gute Rabattaktionen auf Tagesangebote.",
+    "budgetRating": 4
+  },
+  {
+    "slug": "netto",
+    "name": "Netto",
+    "notes": "Günstig bei Snacks, Getränken und spontanen Angeboten.",
+    "budgetRating": 4
+  },
+  {
+    "slug": "norma",
+    "name": "Norma",
+    "notes": "Budgetfreundlich, aber je nach Filiale kleinere Auswahl.",
+    "budgetRating": 4
+  },
+  {
+    "slug": "edeka",
+    "name": "Edeka",
+    "notes": "Etwas teurer, aber solide bei Qualität und Eigenmarken.",
+    "budgetRating": 3
+  },
+  {
+    "slug": "thomas-philipps",
+    "name": "Thomas Philipps",
+    "notes": "Kann bei Sonderposten und haltbaren Produkten lohnen.",
+    "budgetRating": 3
+  }
+]
