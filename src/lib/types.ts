@@ -45,6 +45,8 @@ export interface MatchedIngredient {
   matchedProductName?: string;
   store?: string;
   price?: number;
+  /** From matched flyer deal when available (>0 means on discount). */
+  discountPercent?: number;
   /** True when price is a placeholder because no deal matched (not a shelf price). */
   priceIsEstimated?: boolean;
   confidence: "high" | "medium" | "low";
@@ -70,6 +72,8 @@ export interface StoreInfo {
   name: string;
   brand?: string;
   address?: string;
+  /** OSM addr:postcode when present. */
+  postcode?: string;
   openingHours?: string;
   lat?: number;
   lon?: number;

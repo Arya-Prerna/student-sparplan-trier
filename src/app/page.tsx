@@ -21,7 +21,10 @@ export default function Home() {
   const [query, setQuery] = useState("milk");
   const [selectedStore, setSelectedStore] = useState("");
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [topDeals, setTopDeals] = useState<Deal[]>([]);
+  const [topDealsLoading, setTopDealsLoading] = useState(false);
   const [stores, setStores] = useState<StoreInfo[]>([]);
+  const [storeGuideRelaxed, setStoreGuideRelaxed] = useState(false);
   const [meals, setMeals] = useState<MealSuggestion[]>([]);
   const [studentPicks, setStudentPicks] = useState<StudentPick[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -99,22 +102,53 @@ export default function Home() {
   const loadStores = useCallback(async () => {
     setStoresLoading(true);
     try {
-      const response = await fetch("/api/stores", { cache: "no-store" });
-      const data = (await response.json()) as { stores?: StoreInfo[] };
+      const response = await fetch(
+        `/api/stores?zipCode=${encodeURIComponent(zipCode)}`,
+        { cache: "no-store" }
+      );
+      const data = (await response.json()) as {
+        stores?: StoreInfo[];
+        relaxedPlzFilter?: boolean;
+      };
       if (!response.ok) {
         throw new Error("Could not load stores.");
       }
       setStores(data.stores ?? []);
+      setStoreGuideRelaxed(Boolean(data.relaxedPlzFilter));
     } catch {
       setStores([]);
+      setStoreGuideRelaxed(false);
     } finally {
       setStoresLoading(false);
     }
-  }, []);
+  }, [zipCode]);
+
+  const loadTopDeals = useCallback(async () => {
+    setTopDealsLoading(true);
+    try {
+      const response = await fetch(
+        `/api/top-deals?zipCode=${encodeURIComponent(zipCode)}`,
+        { cache: "no-store" }
+      );
+      const data = (await response.json()) as { deals?: Deal[] };
+      if (!response.ok) {
+        throw new Error("Could not load top deals.");
+      }
+      setTopDeals(data.deals ?? []);
+    } catch {
+      setTopDeals([]);
+    } finally {
+      setTopDealsLoading(false);
+    }
+  }, [zipCode]);
 
   useEffect(() => {
     void loadStores();
   }, [loadStores]);
+
+  useEffect(() => {
+    void loadTopDeals();
+  }, [loadTopDeals]);
 
   useEffect(() => {
     void loadMeals();
@@ -135,14 +169,6 @@ export default function Home() {
     }, 400);
     return () => window.clearTimeout(handle);
   }, [runSearch]);
-
-  const storesNearZip = useMemo(() => {
-    if (!zipCode) {
-      return stores;
-    }
-    const matched = stores.filter((s) => s.address?.replace(/\s/g, "").includes(zipCode));
-    return matched.length > 0 ? matched : stores;
-  }, [stores, zipCode]);
 
   const filteredDeals = useMemo(() => {
     if (!selectedStore) {
@@ -196,6 +222,28 @@ export default function Home() {
           {tab === "search" ? (
             <>
               <StudentPicks picks={studentPicks} loading={picksLoading} />
+
+              <div className="rounded-2xl border border-[#F9D5E5] bg-white p-4 shadow-md shadow-rose-100/40">
+                <h2 className="text-lg font-semibold text-[#4A2D3A]">
+                  Top discounts (PLZ {zipCode})
+                </h2>
+                <p className="mt-1 text-sm text-[#8B6B7B]">
+                  Up to 12 offers with the highest discount % near your postal code (all listed stores).
+                </p>
+                {topDealsLoading ? (
+                  <p className="mt-3 text-sm text-[#8B6B7B]">Loading top deals…</p>
+                ) : (
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {topDeals.map((deal) => (
+                      <DealCard key={`top-${deal.id}`} deal={deal} />
+                    ))}
+                  </div>
+                )}
+                {!topDealsLoading && topDeals.length === 0 ? (
+                  <p className="mt-3 text-sm text-[#8B6B7B]">No discounted offers found for this area.</p>
+                ) : null}
+              </div>
+
               <SearchBar value={query} onChange={setQuery} onSubmit={() => void runSearch()} />
               <StoreFilter
                 stores={storeNames}
@@ -232,8 +280,8 @@ export default function Home() {
               <div className="rounded-2xl border border-[#F9D5E5] bg-white p-4 shadow-md shadow-rose-100/40">
                 <h2 className="text-lg font-semibold text-[#4A2D3A]">Cheapest meals this week</h2>
                 <p className="mt-1 text-sm text-[#8B6B7B]">
-                  Curated recipes matched to current offers (Haiku). Totals include estimates when no
-                  deal matches an ingredient.
+                  Recipes matched to offers in your PLZ (AI + deals). Each meal includes at least one
+                  discounted ingredient; totals include estimates when no deal matches an ingredient.
                 </p>
               </div>
 
@@ -249,14 +297,19 @@ export default function Home() {
 
               {!mealsLoading && meals.length === 0 ? (
                 <p className="text-sm text-[#8B6B7B]">
-                  No meals available. Check your Anthropic API key and deal data.
+                  No meals available. Check your OpenRouter API key and deal data.
                 </p>
               ) : null}
             </>
           ) : null}
 
           {tab === "stores" ? (
-            <StoreGuide stores={storesNearZip} loading={storesLoading} zipCode={zipCode} />
+            <StoreGuide
+              stores={stores}
+              loading={storesLoading}
+              zipCode={zipCode}
+              relaxedPlzFilter={storeGuideRelaxed}
+            />
           ) : null}
         </section>
 

@@ -69,6 +69,13 @@ export function MealCard({ meal }: MealCardProps) {
               <span className="font-semibold text-[#4A2D3A]">
                 {typeof ingredient.price === "number" ? formatCurrency(ingredient.price) : "—"}
               </span>
+              {(ingredient.discountPercent ?? 0) > 0 && !ingredient.priceIsEstimated ? (
+                <span className="rounded-lg bg-[#B8E6C8] px-2 py-0.5 text-[10px] font-semibold text-emerald-900">
+                  -{ingredient.discountPercent}% off
+                </span>
+              ) : !ingredient.priceIsEstimated && ingredient.matchedProductName ? (
+                <span className="text-[10px] text-[#8B6B7B]">Regular price (no discount)</span>
+              ) : null}
             </div>
           </div>
         ))}

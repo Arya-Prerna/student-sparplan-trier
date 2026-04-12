@@ -5,9 +5,11 @@ interface StoreGuideProps {
   stores: StoreInfo[];
   loading?: boolean;
   zipCode?: string;
+  /** True when OSM had no strict addr:postcode match; list may be filtered by address or all Trier. */
+  relaxedPlzFilter?: boolean;
 }
 
-export function StoreGuide({ stores, loading, zipCode }: StoreGuideProps) {
+export function StoreGuide({ stores, loading, zipCode, relaxedPlzFilter }: StoreGuideProps) {
   return (
     <>
       <div className="rounded-2xl border border-[#F9D5E5] bg-white p-4 shadow-md shadow-rose-100/40">
@@ -17,8 +19,10 @@ export function StoreGuide({ stores, loading, zipCode }: StoreGuideProps) {
           {zipCode ? (
             <>
               {" "}
-              Showing locations matching postal code <strong>{zipCode}</strong> where available; otherwise
-              all Trier-area listings.
+              Stores for postal code <strong>{zipCode}</strong>
+              {relaxedPlzFilter
+                ? " (few entries have PLZ in OSM — showing address match or all Trier supermarkets)."
+                : "."}
             </>
           ) : null}
         </p>

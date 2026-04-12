@@ -1,7 +1,11 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-import { fetchOverpassSupermarkets } from "@/lib/overpass";
+import {
+  fetchOverpassSupermarkets,
+  fetchOverpassSupermarketsByPostcode,
+  type OverpassElement,
+} from "@/lib/overpass";
 import { normalizeText, slugify } from "@/lib/normalize";
 import type { StoreInfo, StoreMeta } from "@/lib/types";
 
@@ -51,39 +55,41 @@ function normalizeBrand(value: string) {
   return value;
 }
 
-export async function fetchStores(cacheSeconds = 60 * 60 * 24) {
-  const payload = await fetchOverpassSupermarkets(cacheSeconds);
-  const elements = payload.elements ?? [];
-  const meta = await loadStoreMeta();
-
+function mapElementsToStores(
+  elements: OverpassElement[],
+  meta: StoreMeta[]
+): StoreInfo[] {
   const mapped: Array<StoreInfo | null> = elements.map((element): StoreInfo | null => {
-      const tags = element.tags ?? {};
-      const name = tags.name?.trim();
-      const brand = tags.brand?.trim();
+    const tags = element.tags ?? {};
+    const name = tags.name?.trim();
+    const brand = tags.brand?.trim();
 
-      if (!name && !brand) {
-        return null;
-      }
+    if (!name && !brand) {
+      return null;
+    }
 
-      const displayName = normalizeBrand(name ?? brand ?? "Supermarket");
-      const slug = slugify(displayName);
-      const metadata = meta.find(
-        (entry) =>
-          normalizeText(entry.slug) === slug || normalizeText(entry.name) === slug
-      );
+    const displayName = normalizeBrand(name ?? brand ?? "Supermarket");
+    const slug = slugify(displayName);
+    const metadata = meta.find(
+      (entry) =>
+        normalizeText(entry.slug) === slug || normalizeText(entry.name) === slug
+    );
 
-      return {
-        id: `store-${element.id}`,
-        name: displayName,
-        brand: brand ? normalizeBrand(brand) : undefined,
-        address: buildAddress(tags),
-        openingHours: tags.opening_hours || tags["opening_hours:store"],
-        lat: element.lat ?? element.center?.lat,
-        lon: element.lon ?? element.center?.lon,
-        notes: metadata?.notes,
-        source: "overpass" as const,
-      };
-    });
+    const postcode = tags["addr:postcode"]?.trim();
+
+    return {
+      id: `store-${element.id}`,
+      name: displayName,
+      brand: brand ? normalizeBrand(brand) : undefined,
+      address: buildAddress(tags),
+      postcode: postcode || undefined,
+      openingHours: tags.opening_hours || tags["opening_hours:store"],
+      lat: element.lat ?? element.center?.lat,
+      lon: element.lon ?? element.center?.lon,
+      notes: metadata?.notes,
+      source: "overpass" as const,
+    };
+  });
 
   const validStores = mapped.filter((store): store is StoreInfo => store !== null);
 
@@ -98,3 +104,33 @@ export async function fetchStores(cacheSeconds = 60 * 60 * 24) {
   return [...deduped.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export async function fetchStores(
+  cacheSeconds = 60 * 60 * 24,
+  zipCode?: string
+): Promise<{ stores: StoreInfo[]; relaxedPlzFilter: boolean }> {
+  const meta = await loadStoreMeta();
+  const z = zipCode?.trim();
+
+  if (z) {
+    const strictPayload = await fetchOverpassSupermarketsByPostcode(z, cacheSeconds);
+    const strictElements = strictPayload.elements ?? [];
+    if (strictElements.length > 0) {
+      const stores = mapElementsToStores(strictElements, meta);
+      return { stores, relaxedPlzFilter: false };
+    }
+
+    const fullPayload = await fetchOverpassSupermarkets(cacheSeconds);
+    const allStores = mapElementsToStores(fullPayload.elements ?? [], meta);
+    const filtered = allStores.filter(
+      (s) => s.postcode === z || Boolean(s.address?.replace(/\s/g, "").includes(z))
+    );
+    return {
+      stores: filtered.length > 0 ? filtered : allStores,
+      relaxedPlzFilter: true,
+    };
+  }
+
+  const payload = await fetchOverpassSupermarkets(cacheSeconds);
+  const stores = mapElementsToStores(payload.elements ?? [], meta);
+  return { stores, relaxedPlzFilter: false };
+}

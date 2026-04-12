@@ -4,7 +4,7 @@ import path from "node:path";
 import { type NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 
-import { fetchTopDealsForMealMatching } from "@/lib/marktguru";
+import { getCachedDealPoolForZip } from "@/lib/cached-deals";
 import { matchRecipesWithDeals } from "@/lib/recipe-matcher";
 import type { Recipe } from "@/lib/types";
 
@@ -17,7 +17,7 @@ async function loadRecipes() {
 async function buildMealSuggestions(zipCode: string) {
   const [recipes, deals] = await Promise.all([
     loadRecipes(),
-    fetchTopDealsForMealMatching(zipCode),
+    getCachedDealPoolForZip(zipCode),
   ]);
 
   const suggestions = await matchRecipesWithDeals(recipes, deals);

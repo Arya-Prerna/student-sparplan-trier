@@ -18,6 +18,21 @@ area["name"="Trier"]["boundary"="administrative"]->.searchArea;
 out center tags;
 `;
 
+/** Supermarkets inside Trier boundary with a given addr:postcode (may be sparse in OSM). */
+export function buildSupermarketsByPostcodeQuery(postcode: string): string {
+  const safe = postcode.replace(/[^0-9A-Za-z-]/g, "");
+  return `
+[out:json][timeout:25];
+area["name"="Trier"]["boundary"="administrative"]->.searchArea;
+(
+  node["shop"="supermarket"]["addr:postcode"="${safe}"](area.searchArea);
+  way["shop"="supermarket"]["addr:postcode"="${safe}"](area.searchArea);
+  relation["shop"="supermarket"]["addr:postcode"="${safe}"](area.searchArea);
+);
+out center tags;
+`.trim();
+}
+
 export interface OverpassElement {
   type: "node" | "way" | "relation";
   id: number;
@@ -47,6 +62,28 @@ export async function fetchOverpassSupermarkets(
       "content-type": "text/plain;charset=UTF-8",
     },
     body: OVERPASS_SUPERMARKETS_QUERY,
+    next: {
+      revalidate: cacheSeconds,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Overpass request failed (${response.status})`);
+  }
+
+  return (await response.json()) as OverpassResponse;
+}
+
+export async function fetchOverpassSupermarketsByPostcode(
+  postcode: string,
+  cacheSeconds = 60 * 60 * 24
+): Promise<OverpassResponse> {
+  const response = await fetch(OVERPASS_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "content-type": "text/plain;charset=UTF-8",
+    },
+    body: buildSupermarketsByPostcodeQuery(postcode),
     next: {
       revalidate: cacheSeconds,
     },

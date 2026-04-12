@@ -1,14 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { z } from "zod";
 
-import { fetchTopDealsForMealMatching } from "@/lib/marktguru";
+import { getCachedDealPoolForZip } from "@/lib/cached-deals";
 import { normalizeText } from "@/lib/normalize";
 import type { Deal, StudentPick } from "@/lib/types";
 
 const DEFAULT_MODEL =
-  process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
+  process.env.OPENROUTER_MODEL ?? "google/gemma-3-27b-it:free";
 
 const aiPickSchema = z.object({
   /** Index into the provided deals list (preferred). */
@@ -137,7 +137,7 @@ async function buildStudentPicks(zipCode: string): Promise<{
   sourceDealsCount: number;
   usedAi: boolean;
 }> {
-  const deals = await fetchTopDealsForMealMatching(zipCode);
+  const deals = await getCachedDealPoolForZip(zipCode);
   const top = [...deals]
     .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))
     .slice(0, 60);
@@ -146,7 +146,7 @@ async function buildStudentPicks(zipCode: string): Promise<{
     return { picks: [], sourceDealsCount: 0, usedAi: false };
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     return {
       picks: fallbackPicks(top),
@@ -155,7 +155,10 @@ async function buildStudentPicks(zipCode: string): Promise<{
     };
   }
 
-  const anthropic = new Anthropic({ apiKey });
+  const openai = new OpenAI({
+    apiKey,
+    baseURL: "https://openrouter.ai/api/v1",
+  });
   const compact = top.map((d, i) => ({
     i,
     productName: d.productName,
@@ -174,12 +177,12 @@ Field "i" MUST be the index from the input deals (0-based). Do not invent indice
 `.trim();
 
   try {
-    const message = await anthropic.messages.create({
+    const message = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
       max_tokens: 2048,
       temperature: 0.2,
-      system: systemPrompt,
       messages: [
+        { role: "system", content: systemPrompt },
         {
           role: "user",
           content: JSON.stringify({ deals: compact }, null, 2),
@@ -187,9 +190,7 @@ Field "i" MUST be the index from the input deals (0-based). Do not invent indice
       ],
     });
 
-    const output = message.content
-      .map((block) => ("text" in block ? block.text : ""))
-      .join("\n");
+    const output = message.choices[0]?.message?.content ?? "";
 
     const parsedRaw = JSON.parse(extractJsonArray(output));
     const parsed = aiPicksSchema.parse(parsedRaw);
@@ -209,7 +210,7 @@ Field "i" MUST be the index from the input deals (0-based). Do not invent indice
       usedAi: true,
     };
   } catch (err) {
-    console.error("[student-picks] Haiku curation failed, using discount sort:", err);
+    console.error("[student-picks] AI curation failed, using discount sort:", err);
     return {
       picks: fallbackPicks(top),
       sourceDealsCount: deals.length,
