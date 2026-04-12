@@ -10,10 +10,9 @@ import { SearchBar } from "@/components/SearchBar";
 import { StoreGuide } from "@/components/StoreGuide";
 import { StoreFilter } from "@/components/StoreFilter";
 import { StudentBasket } from "@/components/StudentBasket";
-import { StudentPicks } from "@/components/StudentPicks";
 import { TabNav, type AppTab } from "@/components/TabNav";
 import { ZipCodeSelector } from "@/components/ZipCodeSelector";
-import type { Deal, MealSuggestion, StoreInfo, StudentPick } from "@/lib/types";
+import type { Deal, MealSuggestion, StoreInfo } from "@/lib/types";
 
 export default function Home() {
   const [tab, setTab] = useState<AppTab>("search");
@@ -26,11 +25,9 @@ export default function Home() {
   const [stores, setStores] = useState<StoreInfo[]>([]);
   const [storeGuideRelaxed, setStoreGuideRelaxed] = useState(false);
   const [meals, setMeals] = useState<MealSuggestion[]>([]);
-  const [studentPicks, setStudentPicks] = useState<StudentPick[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [storesLoading, setStoresLoading] = useState(false);
   const [mealsLoading, setMealsLoading] = useState(false);
-  const [picksLoading, setPicksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const runSearch = useCallback(async () => {
@@ -59,25 +56,6 @@ export default function Home() {
       setSearchLoading(false);
     }
   }, [query, zipCode]);
-
-  const loadStudentPicks = useCallback(async () => {
-    setPicksLoading(true);
-    try {
-      const response = await fetch(
-        `/api/student-picks?zipCode=${encodeURIComponent(zipCode)}`,
-        { cache: "no-store" }
-      );
-      const data = (await response.json()) as { picks?: StudentPick[] };
-      if (!response.ok) {
-        throw new Error("Could not load student picks.");
-      }
-      setStudentPicks(data.picks ?? []);
-    } catch {
-      setStudentPicks([]);
-    } finally {
-      setPicksLoading(false);
-    }
-  }, [zipCode]);
 
   const loadMeals = useCallback(async () => {
     setMealsLoading(true);
@@ -155,10 +133,6 @@ export default function Home() {
   }, [loadMeals]);
 
   useEffect(() => {
-    void loadStudentPicks();
-  }, [loadStudentPicks]);
-
-  useEffect(() => {
     setSelectedStore("");
   }, [zipCode]);
 
@@ -221,14 +195,12 @@ export default function Home() {
         <section className="space-y-4">
           {tab === "search" ? (
             <>
-              <StudentPicks picks={studentPicks} loading={picksLoading} />
-
               <div className="rounded-2xl border border-[#F9D5E5] bg-white p-4 shadow-md shadow-rose-100/40">
                 <h2 className="text-lg font-semibold text-[#4A2D3A]">
-                  Top discounts (PLZ {zipCode})
+                  Top Discounts ({zipCode})
                 </h2>
                 <p className="mt-1 text-sm text-[#8B6B7B]">
-                  Up to 12 offers with the highest discount % near your postal code (all listed stores).
+                  Highest discount % near postal code {zipCode}, mixed across stores (up to 12 offers).
                 </p>
                 {topDealsLoading ? (
                   <p className="mt-3 text-sm text-[#8B6B7B]">Loading top deals…</p>
@@ -278,10 +250,11 @@ export default function Home() {
           {tab === "meals" ? (
             <>
               <div className="rounded-2xl border border-[#F9D5E5] bg-white p-4 shadow-md shadow-rose-100/40">
-                <h2 className="text-lg font-semibold text-[#4A2D3A]">Cheapest meals this week</h2>
+                <h2 className="text-lg font-semibold text-[#4A2D3A]">Budget meals this week</h2>
                 <p className="mt-1 text-sm text-[#8B6B7B]">
-                  Recipes matched to offers in your PLZ (AI + deals). Each meal includes at least one
-                  discounted ingredient; totals include estimates when no deal matches an ingredient.
+                  Eight curated meals for your postal code, cheapest first. Each includes at least one
+                  discounted ingredient; at least three are vegetarian or vegan. Totals use estimates
+                  when no offer matches an ingredient.
                 </p>
               </div>
 
@@ -297,7 +270,7 @@ export default function Home() {
 
               {!mealsLoading && meals.length === 0 ? (
                 <p className="text-sm text-[#8B6B7B]">
-                  No meals available. Check your OpenRouter API key and deal data.
+                  No meals available. Check deal data for your postal code.
                 </p>
               ) : null}
             </>

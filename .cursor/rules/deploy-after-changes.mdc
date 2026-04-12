@@ -1,0 +1,17 @@
+---
+description: After substantive app changes, push to Git and deploy to Vercel without asking the user.
+alwaysApply: true
+---
+
+# Deploy and push (no prompt)
+
+When you finish a coding task that changes the **student-sparplan-trier** app (features, fixes, data, or config that affects production):
+
+1. **Git:** Stage relevant files, commit with a clear message, and `git push` to the tracked remote branch (usually `main`). Do not commit secrets (`.env`, `.env.local`).
+
+2. **Vercel:** Run a production deploy from the project root, non-interactively:
+   `npx vercel --prod --yes`
+
+Do this **without asking** for confirmation, unless the user has explicitly asked to pause or review first in that thread.
+
+If `git push` or `vercel` fails (auth, network), report the error and what to fix; retry once if appropriate.

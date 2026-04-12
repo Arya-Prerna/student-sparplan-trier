@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 
 import { fetchTopDealsForMealMatching } from "@/lib/marktguru";
 
-/** Align with meal / student-picks routes: one Marktguru staple sweep per PLZ per window. */
+/** One Marktguru staple sweep per PLZ per revalidate window (shared by meals + top-deals). */
 const REVALIDATE_SECONDS = 21600;
 
 /**

@@ -301,6 +301,59 @@ export function dedupeDeals(deals: Deal[]) {
   return result;
 }
 
+/**
+ * Pick up to `limit` deals with strong discounts while avoiding a single chain dominating
+ * (e.g. all Lidl). Pass 1: max `maxPerStore` per retailer; pass 2: fill remaining by discount order.
+ */
+export function pickDiverseTopDeals(
+  deals: Deal[],
+  limit: number,
+  maxPerStore = 3
+): Deal[] {
+  const sorted = [...deals].sort((a, b) => {
+    const byDisc = (b.discountPercent ?? 0) - (a.discountPercent ?? 0);
+    if (byDisc !== 0) {
+      return byDisc;
+    }
+    return a.price - b.price;
+  });
+
+  const out: Deal[] = [];
+  const seen = new Set<string>();
+  const counts = new Map<string, number>();
+
+  const storeKey = (d: Deal) => normalizeText(d.store);
+
+  for (const d of sorted) {
+    if (out.length >= limit) {
+      break;
+    }
+    if (seen.has(d.id)) {
+      continue;
+    }
+    const k = storeKey(d);
+    if ((counts.get(k) ?? 0) >= maxPerStore) {
+      continue;
+    }
+    out.push(d);
+    seen.add(d.id);
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+
+  for (const d of sorted) {
+    if (out.length >= limit) {
+      break;
+    }
+    if (seen.has(d.id)) {
+      continue;
+    }
+    out.push(d);
+    seen.add(d.id);
+  }
+
+  return out;
+}
+
 export async function searchDeals(
   query: string,
   options: SearchDealsOptions = {}

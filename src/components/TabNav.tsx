@@ -6,7 +6,7 @@ export type AppTab = "search" | "meals" | "stores";
 
 const TABS: Array<{ id: AppTab; label: string; description: string }> = [
   { id: "search", label: "Find deals", description: "Search current offers" },
-  { id: "meals", label: "Budget meals", description: "Cheapest meals this week" },
+  { id: "meals", label: "Budget meals", description: "Eight meals, cheapest first" },
   { id: "stores", label: "Store guide", description: "Hours & addresses" },
 ];
 

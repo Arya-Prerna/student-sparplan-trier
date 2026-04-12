@@ -1,0 +1,51 @@
+ID,Name,Category,Primary_Store_Source,Main_Staples,Nutritional_Benefit
+R01,Sauerkraut Skillet,Vegan,Edeka/Lidl,Fresh Sauerkraut/Smoked Tofu/Potatoes,Probiotic/Microbiome
+R02,Carrot-Apple Salad,Vegan,Aldi/Lidl,Carrots/Apples/Walnuts,Fiber/Omega-3
+R03,Vegan Goulash,Vegan,Edeka,TVP/Potatoes/Paprika,High Protein/Iron
+R04,Red Cabbage w/ Chestnuts,Vegan,Lidl,Cabbage/Chestnuts/Apples,Antioxidants
+R05,Vegan Potato Pancakes,Vegan,Aldi,Potatoes/Applesauce,Resistance Starch
+R06,Lentil Stew,Vegan,Aldi,Brown Lentils/Carrots/Leeks,Sustained Energy
+R07,Unstuffed Cabbage Bowl,Vegan,Lidl,Cabbage/Vegan Mince/Rice,Fiber Volume
+R08,Barley & Root Veg Soup,Vegan,dm/Edeka,Pearl Barley/Parsnips,Beta-glucans
+R09,Cucumber Salad,Vegan,Any,Cucumbers/Vinegar/Dill,Hydration
+R10,Tomato & Onion Salad,Vegan,Any,Tomatoes/Red Onions,Lycopene
+R11,Sauerkraut Salad,Vegan,Any,Sauerkraut/Carrots,Raw Probiotics
+R12,Rosemary Roast Potatoes,Vegan,Aldi,Potatoes/Rosemary/Garlic,Anti-inflammatory
+R13,Stuffed Sweet Potato,Vegan,Lidl,Sweet Potato/Chickpeas/Spinach,Vitamin A/Folate
+R14,Red Lentil Pumpkin Soup,Vegan,Aldi/Edeka,Lentils/Hokkaido Pumpkin,Carotenoids/Iron
+R15,Vegan Currywurst,Vegan,Lidl,Seitan Sausage/Ketchup,High-Protein
+R16,Chickpea & Veggie Soup,Vegan,Aldi,Chickpeas/Carrots/Parsley,Plant Protein
+R17,Braised Bavarian Cabbage,Vegan,Any,Cabbage/Caraway/Apple Juice,Digestive Aid
+R18,Balsamic Brussels Sprouts,Vegan,Lidl,Brussels Sprouts/Balsamic,Sulforaphane
+R19,Vegan Pea Soup,Vegan,Aldi,Split Peas/Potatoes/Majoram,Mineral Density
+R20,Kale & White Bean Stew,Vegan,Edeka,Kale/Cannellini Beans,Calcium/Vitamin K
+R21,Käsespätzle,Vegetarian,Aldi/Edeka,Egg Spätzle/Bergkäse/Onions,Satiety/Protein
+R22,Pellkartoffeln mit Quark,Vegetarian,Lidl/Aldi,Potatoes/Quark/Chives,Protein/Carb Balance
+R23,Moselle Onion Tart,Vegetarian,Edeka,Onions/Flour/Eggs,Quercetin
+R24,Strawberry & Brie Salad,Vegetarian,Aldi/Lidl,Strawberries/Brie/Greens,Vitamin C/Calcium
+R25,Asparagus Quiche,Vegetarian,Lidl/Edeka,White Asparagus/Eggs/Cream,Prebiotic Fiber
+R26,Obatzda Cheese Spread,Vegetarian,Any,Camembert/Butter/Paprika,Fermented Dairy
+R27,Mushroom Schupfnudeln,Vegetarian,Aldi/Lidl,Potato Noodles/Mushrooms,Selenium/B Vitamins
+R28,Spinach Spaetzle,Vegetarian,Edeka,Spinach/Spaetzle/Cheese,Iron/Magnesium
+R29,Beet & Walnut Salad,Vegetarian,Any,Beets/Walnuts/Yogurt,Nitrates
+R30,Creamed Kohlrabi,Vegetarian,Any,Kohlrabi/Milk/Nutmeg,Vitamin C/Fiber
+R31,Eggs in Mustard Sauce,Vegetarian,Aldi/Lidl,Eggs/Mustard/Milk,Thermogenic/Protein
+R32,Creamy Leek Soup,Vegetarian,Any,Leeks/Potatoes,Allicin/Immunity
+R33,Potato-Chickpea Patties,Vegetarian,dm/Aldi,Potatoes/Chickpeas,Complex Carbs
+R34,Savory Pumpkin Strudel,Vegetarian,Edeka,Pumpkin/Feta/Phyllo,Beta-carotene
+R35,Asparagus Gnocchi Salad,Vegetarian,Lidl,Gnocchi/Asparagus/Pesto,Prebiotic Fiber
+R36,German Pasta Salad,Vegetarian,Any,Nudeln/Peas/Yogurt,Macro Balanced
+R37,Radish & Butter Bread,Vegetarian,Edeka,Rye Bread/Radishes/Butter,Sulfur Compounds
+R38,Cauliflower-Broccoli Bake,Vegetarian,Aldi,Frozen Florets/Cheese,Low-Carb Bulk
+R39,Walnut Soup,Vegetarian,Any,Walnuts/Broth,Omega-3 Fats
+R40,Bohemian Dumplings,Vegetarian,Edeka,Flour/Yeast/Milk,B-Complex
+R41,Döppekooche w/ Bacon,Non-Veg,Edeka/Aldi,Potatoes/Bacon/Eggs,Slow Energy
+R42,Chicken Schnitzel,Non-Veg,Any,Chicken Breast/Breadcrumbs,Lean Protein/Zinc
+R43,Asparagus & Smoked Ham,Non-Veg,Any,White Asparagus/Smoked Ham,Diuretic/Protein
+R44,Pumpkin Soup w/ Mince,Non-Veg,Lidl/Aldi,Pumpkin/Minced Meat/Potatoes,Iron/Vitamin A
+R45,Minced Meat Pie,Non-Veg,Any,Minced Meat/Peppers/Corn,High Veg Ratio
+R46,Lentil & Bacon Soup,Non-Veg,Aldi,Lentils/Bacon/Carrots,Fiber/Protein
+R47,Sheet Pan Balsamic Chicken,Non-Veg,Aldi/Lidl,Chicken/Potatoes,Low-Fat Roast
+R48,Kasseler & Sauerkraut,Non-Veg,Any,Smoked Pork/Sauerkraut,Lean Protein/Vitamin C
+R49,Trout & Chive Salad,Non-Veg,Lidl/Edeka,Smoked Trout/Quark,Omega-3/Protein
+R50,Dill Pickle Ham Soup,Non-Veg,Any,Pickles/Ham/Potatoes,Electrolytes/B6

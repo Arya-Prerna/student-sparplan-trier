@@ -1,22 +1,13 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-
 import { type NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 
+import { loadBudgetRecipes } from "@/lib/budget-recipes";
 import { getCachedDealPoolForZip } from "@/lib/cached-deals";
 import { matchRecipesWithDeals } from "@/lib/recipe-matcher";
-import type { Recipe } from "@/lib/types";
-
-async function loadRecipes() {
-  const filePath = path.join(process.cwd(), "data", "recipes.json");
-  const content = await fs.readFile(filePath, "utf8");
-  return JSON.parse(content) as Recipe[];
-}
 
 async function buildMealSuggestions(zipCode: string) {
   const [recipes, deals] = await Promise.all([
-    loadRecipes(),
+    loadBudgetRecipes(),
     getCachedDealPoolForZip(zipCode),
   ]);
 

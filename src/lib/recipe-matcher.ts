@@ -1,52 +1,8 @@
-import OpenAI from "openai";
-import { z } from "zod";
-
 import { normalizeText } from "@/lib/normalize";
 import type { Deal, MatchedIngredient, MealSuggestion, Recipe } from "@/lib/types";
 
-/** Default: Gemma 3 27B via OpenRouter for fuzzy ingredient ↔ offer matching (override via OPENROUTER_MODEL). */
-const DEFAULT_MODEL =
-  process.env.OPENROUTER_MODEL ?? "google/gemma-3-27b-it:free";
-
 const MEAL_TARGET_MIN = 8;
-const MEAL_TARGET_MAX = 10;
-const DEALS_FOR_LLM = 50;
-
-const mealSuggestionSchema = z.object({
-  recipeId: z.string(),
-  recipeName: z.string(),
-  serves: z.number(),
-  prepMinutes: z.number(),
-  estimatedTotalCost: z.number(),
-  estimatedCostPerServing: z.number(),
-  stores: z.array(z.string()),
-  reason: z.string(),
-  includesEstimatedPrices: z.boolean().optional(),
-  matchedIngredients: z.array(
-    z.object({
-      ingredientName: z.string(),
-      amount: z.string(),
-      matchedProductName: z.string().optional(),
-      store: z.string().optional(),
-      price: z.number().optional(),
-      discountPercent: z.number().optional(),
-      priceIsEstimated: z.boolean().optional(),
-      confidence: z.enum(["high", "medium", "low"]),
-      note: z.string().optional(),
-    })
-  ),
-});
-
-const mealSuggestionsSchema = z.array(mealSuggestionSchema);
-
-function extractJson(text: string) {
-  const objectStart = text.indexOf("[");
-  const objectEnd = text.lastIndexOf("]");
-  if (objectStart >= 0 && objectEnd >= objectStart) {
-    return text.slice(objectStart, objectEnd + 1);
-  }
-  throw new Error("Could not find JSON array in model response.");
-}
+const MEAL_TARGET_MAX = 8;
 
 function buildIngredientTokens(name: string) {
   const normalized = normalizeText(name);
@@ -55,6 +11,58 @@ function buildIngredientTokens(name: string) {
 
 /** Placeholder EUR per ingredient when no current deal matches (keeps totals honest). */
 const ESTIMATED_FALLBACK_EUR = 1.5;
+
+function parsePreferredStores(source?: string): string[] {
+  if (!source?.trim() || normalizeText(source) === "any") {
+    return [];
+  }
+  return source
+    .split(/[/,]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function dealMatchesPreferredRetailers(deal: Deal, preferred: string[]): boolean {
+  if (preferred.length === 0) {
+    return false;
+  }
+  const dn = normalizeText(deal.store);
+  return preferred.some((p) => {
+    const pn = normalizeText(p);
+    if (pn.length < 2) {
+      return false;
+    }
+    return dn.includes(pn) || pn.includes(dn);
+  });
+}
+
+function fallbackMatchIngredient(
+  ingredient: string,
+  deals: Deal[],
+  preferredRetailers: string[]
+): Deal | undefined {
+  const tokens = buildIngredientTokens(ingredient);
+  if (tokens.length === 0) {
+    const norm = normalizeText(ingredient);
+    if (norm.length >= 3) {
+      tokens.push(norm);
+    }
+  }
+
+  const matches = deals.filter((deal) =>
+    tokens.some((token) => deal.normalizedProductName.includes(token))
+  );
+
+  if (matches.length === 0) {
+    return undefined;
+  }
+
+  const preferred = matches.filter((m) =>
+    dealMatchesPreferredRetailers(m, preferredRetailers)
+  );
+  const pool = preferred.length > 0 ? preferred : matches;
+  return [...pool].sort((a, b) => a.price - b.price)[0];
+}
 
 function postProcessMealSuggestions(suggestions: MealSuggestion[]): MealSuggestion[] {
   return suggestions.map((meal) => {
@@ -312,7 +320,6 @@ function repairDiversity(
 }
 
 function buildFinalMealList(
-  aiMeals: MealSuggestion[],
   recipes: Recipe[],
   deals: Deal[]
 ): MealSuggestion[] {
@@ -320,218 +327,89 @@ function buildFinalMealList(
   const fallbackProcessed = postProcessMealSuggestions(fallbackRaw);
   const fallbackEnriched = enrichMealsWithDealDiscounts(fallbackProcessed, deals);
 
-  const aiEnriched = enrichMealsWithDealDiscounts(aiMeals, deals);
-
-  const merged = dedupeMealsByRecipeKeepCheapest([...aiEnriched, ...fallbackEnriched]);
+  const merged = dedupeMealsByRecipeKeepCheapest(fallbackEnriched);
   const withDiscount = merged.filter(mealHasDiscountedIngredient);
 
   let selected = selectDiverseBudgetMeals(withDiscount, recipes);
   selected = ensureMinMealCount(selected, withDiscount, MEAL_TARGET_MIN);
   selected = repairDiversity(selected, withDiscount, recipes);
 
-  return selected.slice(0, MEAL_TARGET_MAX);
+  return selected
+    .sort((a, b) => a.estimatedTotalCost - b.estimatedTotalCost)
+    .slice(0, MEAL_TARGET_MAX);
 }
 
-function fallbackMatchIngredient(ingredient: string, deals: Deal[]) {
-  const tokens = buildIngredientTokens(ingredient);
-
-  const matches = deals.filter((deal) =>
-    tokens.some((token) => deal.normalizedProductName.includes(token))
-  );
-
-  if (matches.length === 0) {
-    return undefined;
-  }
-
-  return matches.sort((a, b) => a.price - b.price)[0];
-}
-
-/** Deterministic matcher over all recipes; sorted by total cost (for filling gaps). */
 function fallbackMatcherAll(recipes: Recipe[], deals: Deal[]) {
-  const suggestions: MealSuggestion[] = recipes
-    .map((recipe) => {
-      const matchedIngredients: MatchedIngredient[] = recipe.ingredients.map(
-        (ingredient) => {
-          const deal = fallbackMatchIngredient(ingredient.name, deals);
-          if (!deal) {
-            return {
-              ingredientName: ingredient.name,
-              amount: ingredient.amount,
-              confidence: "low" as const,
-              price: ESTIMATED_FALLBACK_EUR,
-              priceIsEstimated: true,
-              note: "Estimated (no matching deal found).",
-            };
-          }
+  const suggestions: MealSuggestion[] = recipes.map((recipe) => {
+    const preferred = parsePreferredStores(recipe.primaryStoreSource);
 
+    const matchedIngredients: MatchedIngredient[] = recipe.ingredients.map(
+      (ingredient) => {
+        const deal = fallbackMatchIngredient(ingredient.name, deals, preferred);
+        if (!deal) {
           return {
             ingredientName: ingredient.name,
             amount: ingredient.amount,
-            matchedProductName: deal.productName,
-            store: deal.store,
-            price: deal.price,
-            discountPercent: deal.discountPercent,
-            confidence: "medium" as const,
+            confidence: "low" as const,
+            price: ESTIMATED_FALLBACK_EUR,
+            priceIsEstimated: true,
+            note: "Estimated (no matching deal found).",
           };
         }
-      );
 
-      const total = matchedIngredients.reduce(
-        (sum, item) => sum + (item.price ?? 0),
-        0
-      );
+        return {
+          ingredientName: ingredient.name,
+          amount: ingredient.amount,
+          matchedProductName: deal.productName,
+          store: deal.store,
+          price: deal.price,
+          discountPercent: deal.discountPercent,
+          confidence: "medium" as const,
+        };
+      }
+    );
 
-      const includesEstimated = matchedIngredients.some(
-        (item) => item.priceIsEstimated
-      );
+    const total = matchedIngredients.reduce(
+      (sum, item) => sum + (item.price ?? 0),
+      0
+    );
 
-      return {
-        recipeId: recipe.id,
-        recipeName: recipe.name,
-        serves: recipe.serves,
-        prepMinutes: recipe.prepMinutes,
-        estimatedTotalCost: Number(total.toFixed(2)),
-        estimatedCostPerServing: Number((total / recipe.serves).toFixed(2)),
-        matchedIngredients,
-        includesEstimatedPrices: includesEstimated,
-        stores: [
-          ...new Set(
-            matchedIngredients
-              .map((item) => item.store)
-              .filter((value): value is string => Boolean(value))
-          ),
-        ],
-        reason: includesEstimated
-          ? "Fallback matching (no AI): name similarity. Some prices are estimated where no offer matched."
-          : "Fallback matching (no AI): based on product name similarity.",
-      };
-    })
+    const includesEstimated = matchedIngredients.some(
+      (item) => item.priceIsEstimated
+    );
+
+    return {
+      recipeId: recipe.id,
+      recipeName: recipe.name,
+      serves: recipe.serves,
+      prepMinutes: recipe.prepMinutes,
+      estimatedTotalCost: Number(total.toFixed(2)),
+      estimatedCostPerServing: Number((total / recipe.serves).toFixed(2)),
+      matchedIngredients,
+      includesEstimatedPrices: includesEstimated,
+      nutritionalBenefit: recipe.nutritionalBenefit,
+      stores: [
+        ...new Set(
+          matchedIngredients
+            .map((item) => item.store)
+            .filter((value): value is string => Boolean(value))
+        ),
+      ],
+      reason: includesEstimated
+        ? "Matched from current offers (name similarity). Some prices estimated where no offer matched."
+        : "Matched from current offers (deterministic).",
+    };
+  });
+
+  return suggestions
     .filter((recipe) => recipe.estimatedTotalCost > 0)
     .sort((a, b) => a.estimatedTotalCost - b.estimatedTotalCost);
-
-  return suggestions;
 }
 
-function serializeDealsForPrompt(deals: Deal[]) {
-  return deals.map((deal) => ({
-    productName: deal.productName,
-    store: deal.store,
-    price: deal.price,
-    oldPrice: deal.oldPrice,
-    discountPercent: deal.discountPercent,
-    category: deal.category,
-  }));
-}
-
-function serializeRecipesForPrompt(recipes: Recipe[]) {
-  return recipes.map((recipe) => ({
-    id: recipe.id,
-    name: recipe.name,
-    serves: recipe.serves,
-    prepMinutes: recipe.prepMinutes,
-    tags: recipe.tags,
-    ingredients: recipe.ingredients.map((ingredient) => ({
-      name: ingredient.name,
-      amount: ingredient.amount,
-      category: ingredient.category,
-    })),
-  }));
-}
-
-function topDealsForModel(deals: Deal[]): Deal[] {
-  return [...deals]
-    .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))
-    .slice(0, DEALS_FOR_LLM);
-}
-
+/** Budget meals: deterministic matching only (CSV catalog + Marktguru deals). */
 export async function matchRecipesWithDeals(recipes: Recipe[], deals: Deal[]) {
   if (recipes.length === 0 || deals.length === 0) {
     return [] as MealSuggestion[];
   }
-
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return buildFinalMealList([], recipes, deals);
-  }
-
-  const openai = new OpenAI({
-    apiKey,
-    baseURL: "https://openrouter.ai/api/v1",
-  });
-  const compactDeals = serializeDealsForPrompt(topDealsForModel(deals));
-  const compactRecipes = serializeRecipesForPrompt(recipes);
-
-  const systemPrompt = `
-You are a grocery assistant for students in Germany. Match recipe ingredients to offers from the deals list only.
-Rules:
-- Use only recipe ids from input. Do not invent recipes.
-- Return a JSON array only (no markdown).
-- Include at least 8 different recipes.
-- At least 3 must be vegetarian (recipe tags include "vegetarian" or "vegan"); at least 1 must be vegan (tags include "vegan").
-- Each meal must use at least one ingredient matched to a deal with discountPercent > 0 (a real discount).
-- Prefer lower estimatedTotalCost. Sort output by estimatedTotalCost ascending.
-- If no deal fits an ingredient, set price to 0 and confidence "low" (the app fills a placeholder).
-- For each matched offer, set discountPercent from the deals list when applicable.
-Schema:
-[
-  {
-    "recipeId": "string",
-    "recipeName": "string",
-    "serves": number,
-    "prepMinutes": number,
-    "estimatedTotalCost": number,
-    "estimatedCostPerServing": number,
-    "stores": ["string"],
-    "reason": "string",
-    "matchedIngredients": [
-      {
-        "ingredientName": "string",
-        "amount": "string",
-        "matchedProductName": "string",
-        "store": "string",
-        "price": number,
-        "discountPercent": number,
-        "confidence": "high|medium|low",
-        "note": "string optional"
-      }
-    ]
-  }
-]
-Euro numbers only, no currency symbols.
-`.trim();
-
-  const userPrompt = JSON.stringify(
-    {
-      recipes: compactRecipes,
-      deals: compactDeals,
-    },
-    null,
-    2
-  );
-
-  try {
-    const message = await openai.chat.completions.create({
-      model: DEFAULT_MODEL,
-      max_tokens: 4096,
-      temperature: 0,
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-    });
-
-    const output = message.choices[0]?.message?.content ?? "";
-
-    const parsedText = extractJson(output);
-    const parsed = JSON.parse(parsedText);
-    const parsedMeals = mealSuggestionsSchema.parse(parsed);
-    const processed = postProcessMealSuggestions(parsedMeals);
-    return buildFinalMealList(processed, recipes, deals);
-  } catch (err) {
-    console.error("[recipe-matcher] AI call failed, using fallback:", err);
-    return buildFinalMealList([], recipes, deals);
-  }
+  return buildFinalMealList(recipes, deals);
 }

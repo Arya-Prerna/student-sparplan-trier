@@ -36,6 +36,12 @@ export function MealCard({ meal }: MealCardProps) {
       </div>
 
       <p className="mt-2 text-sm text-[#8B6B7B]">{meal.reason}</p>
+      {meal.nutritionalBenefit ? (
+        <p className="mt-1 text-xs text-[#8B6B7B]">
+          <span className="font-medium text-[#4A2D3A]">Nutrition: </span>
+          {meal.nutritionalBenefit.replace(/\//g, " · ")}
+        </p>
+      ) : null}
 
       <div className="mt-3 space-y-2">
         {meal.matchedIngredients.map((ingredient) => (

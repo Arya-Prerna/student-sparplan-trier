@@ -37,6 +37,9 @@ export interface Recipe {
   prepMinutes: number;
   ingredients: RecipeIngredient[];
   tags: string[];
+  /** Hint for matching offers, e.g. "Aldi/Lidl". */
+  primaryStoreSource?: string;
+  nutritionalBenefit?: string;
 }
 
 export interface MatchedIngredient {
@@ -65,6 +68,7 @@ export interface MealSuggestion {
   reason: string;
   /** True if any ingredient used an estimated fallback price. */
   includesEstimatedPrices?: boolean;
+  nutritionalBenefit?: string;
 }
 
 export interface StoreInfo {
