@@ -254,7 +254,8 @@ export default function Home() {
                 <p className="mt-1 text-sm text-[#8B6B7B]">
                   Eight curated meals for your postal code, cheapest first. Each includes at least one
                   discounted ingredient; at least three are vegetarian or vegan. Totals use estimates
-                  when no offer matches an ingredient.
+                  when no offer matches an ingredient. Offer pool and totals refresh from Marktguru on
+                  a rolling basis (cache about two hours per postal code).
                 </p>
               </div>
 

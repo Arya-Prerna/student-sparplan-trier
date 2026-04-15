@@ -13,9 +13,23 @@ export function MealCard({ meal }: MealCardProps) {
         <span className="font-semibold text-[#D4607A]">{meal.recipeName}</span> for about{" "}
         {formatCurrency(meal.estimatedTotalCost)} total.
       </p>
+      {meal.chosenViaPromoFilter === false ? (
+        <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+          Filler pick: fewer than eight meals had a strong promo match this week, so this recipe was
+          added from the full matched list to reach eight suggestions (still sorted cheapest first).
+        </p>
+      ) : null}
       {meal.includesEstimatedPrices ? (
         <p className="mb-2 text-xs text-[#8B6B7B]">
           * Total includes placeholder prices where no current deal matched — see ingredient notes.
+        </p>
+      ) : null}
+      {typeof meal.bundleSavingsPercent === "number" &&
+      meal.bundleSavingsPercent > 0 &&
+      typeof meal.estimatedListPriceTotal === "number" ? (
+        <p className="mb-2 text-xs text-emerald-900">
+          Bundle vs list: about {meal.bundleSavingsPercent.toFixed(0)}% below summed reference prices
+          (~{formatCurrency(meal.estimatedListPriceTotal)} list-style total for matched lines).
         </p>
       ) : null}
       <div className="flex flex-wrap items-start justify-between gap-3">

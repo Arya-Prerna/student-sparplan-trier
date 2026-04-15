@@ -22,7 +22,7 @@ export interface IngredientMatchRule {
 }
 
 const RICE_RULE: IngredientMatchRule = {
-  appliesTo: (n) => n.includes("reis") && !n.includes("kicher"),
+  appliesTo: (n) => (n.includes("reis") || n.includes("rice")) && !n.includes("kicher"),
   positiveWords: ["reis", "jasmin", "basmati", "langkorn", "spitzen", "parboiled", "duft"],
   forbiddenWords: [],
   forbiddenSubstrings: [
@@ -36,27 +36,41 @@ const RICE_RULE: IngredientMatchRule = {
 
 const PEAS_RULE: IngredientMatchRule = {
   appliesTo: (n) =>
-    (n.includes("erbsen") || n.includes("erbse")) && !n.includes("kicher"),
-  positiveWords: ["erbsen", "erbse", "gruene", "garten"],
-  forbiddenWords: [],
-  forbiddenSubstrings: ["kichererbsen", "kichererbse", "kichererb"],
+    (n.includes("erbsen") || n.includes("erbse") || n.includes("peas")) && !n.includes("kicher") && !n.includes("chickpea"),
+  positiveWords: ["erbsen", "erbse", "gruene", "garten", "peas"],
+  forbiddenWords: ["joghurt", "jogurt", "quark", "pudding"],
+  forbiddenSubstrings: [
+    "kichererbsen",
+    "kichererbse",
+    "kichererb",
+    "joghurt",
+    "jogurt",
+    "quark",
+    "fruchtzwerg",
+    "fruchtzwerge",
+  ],
 };
 
 const CARROT_RULE: IngredientMatchRule = {
-  appliesTo: (n) => n.includes("karott") || n.includes("mohre") || n.includes("mohren"),
-  positiveWords: ["karotten", "karotte", "mohre", "mohren", "babykarotten"],
-  forbiddenWords: [],
+  appliesTo: (n) => n.includes("karott") || n.includes("mohre") || n.includes("mohren") || n.includes("carrot"),
+  positiveWords: ["karotten", "karotte", "mohre", "mohren", "babykarotten", "carrots", "carrot"],
+  forbiddenWords: ["joghurt", "jogurt", "quark", "pudding"],
   forbiddenSubstrings: [
     "karottensaft",
     "karotten saft",
     "smoothie",
     "saftkarotte",
+    "joghurt",
+    "jogurt",
+    "quark",
+    "fruchtzwerg",
+    "fruchtzwerge",
   ],
 };
 
 const EGG_RULE: IngredientMatchRule = {
-  appliesTo: (n) => n.includes("eier") || n === "ei" || n.endsWith(" ei"),
-  positiveWords: ["eier", "ei", "brutei", "bioeier", "frischei", "wachtelei"],
+  appliesTo: (n) => n.includes("eier") || n === "ei" || n.endsWith(" ei") || n.includes("eggs") || n === "egg",
+  positiveWords: ["eier", "ei", "brutei", "bioeier", "frischei", "wachtelei", "eggs"],
   forbiddenWords: [
     "joghurt",
     "quark",
@@ -74,15 +88,15 @@ const EGG_RULE: IngredientMatchRule = {
 };
 
 const CHICKPEA_RULE: IngredientMatchRule = {
-  appliesTo: (n) => n.includes("kicher") || n.includes("chickpea"),
+  appliesTo: (n) => n.includes("kicher") || n.includes("chickpea") || n.includes("chickpeas"),
   positiveWords: ["kichererbsen", "kichererbse", "chickpea", "chickpeas"],
   forbiddenWords: [],
   forbiddenSubstrings: [],
 };
 
 const SPINACH_RULE: IngredientMatchRule = {
-  appliesTo: (n) => n.includes("spinat"),
-  positiveWords: ["spinat", "blattspinat", "babyspinat"],
+  appliesTo: (n) => n.includes("spinat") || n.includes("spinach"),
+  positiveWords: ["spinat", "blattspinat", "babyspinat", "spinach"],
   forbiddenWords: [],
   forbiddenSubstrings: ["spinatsaft", "smoothie", "drink"],
 };

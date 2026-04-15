@@ -354,6 +354,35 @@ export function pickDiverseTopDeals(
   return out;
 }
 
+/** Top deals by discount strength (ties broken by lower price). */
+export function pickTopDealsByDiscountPercent(
+  deals: Deal[],
+  limit: number
+): Deal[] {
+  return [...deals]
+    .sort((a, b) => {
+      const da = dealEffectiveDiscountPercent(a);
+      const db = dealEffectiveDiscountPercent(b);
+      if (db !== da) {
+        return db - da;
+      }
+      return a.price - b.price;
+    })
+    .slice(0, limit);
+}
+
+function dealEffectiveDiscountPercent(deal: Deal): number {
+  const reported = deal.discountPercent ?? 0;
+  if (reported > 0) {
+    return reported;
+  }
+  const oldP = deal.oldPrice;
+  if (oldP && oldP > deal.price && oldP > 0) {
+    return ((oldP - deal.price) / oldP) * 100;
+  }
+  return 0;
+}
+
 export async function searchDeals(
   query: string,
   options: SearchDealsOptions = {}
@@ -408,15 +437,27 @@ export async function fetchTopDealsForMealMatching(zipCode: string = DEFAULT_ZIP
     "brot",
     "joghurt",
     "apfel",
+    "zwiebel",
+    "karotten",
+    "erbsen",
+    "avocado",
+    "haferflocken",
+    "tortilla",
+    "rote linsen",
+    "kidneybohnen",
+    "zucchini",
+    "gurke",
+    "spinat",
+    "kurbis",
   ];
 
   const all = await Promise.all(
-    stapleQueries.map((term) => searchDeals(term, { limit: 12, zipCode }))
+    stapleQueries.map((term) => searchDeals(term, { limit: 14, zipCode }))
   );
 
   const flattened = dedupeDeals(all.flat());
-  return flattened
-    .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))
-    .slice(0, 120);
+  return flattened.sort(
+    (a, b) => dealEffectiveDiscountPercent(b) - dealEffectiveDiscountPercent(a)
+  );
 }
 
