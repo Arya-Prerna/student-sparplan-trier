@@ -16,6 +16,18 @@ function dealEffectiveDiscountPercent(deal: Deal): number {
   return 0;
 }
 
+/** Strike price or inferred pre-discount price for savings / bundle math. */
+function referenceListPriceFromDeal(deal: Deal): number {
+  if (deal.oldPrice != null && deal.oldPrice > deal.price) {
+    return deal.oldPrice;
+  }
+  const pct = dealEffectiveDiscountPercent(deal);
+  if (pct > 0 && pct < 100) {
+    return Number((deal.price / (1 - pct / 100)).toFixed(2));
+  }
+  return deal.price;
+}
+
 function buildIngredientTokens(name: string) {
   const normalized = normalizeText(name);
   return normalized.split(" ").filter((token) => token.length >= 2);
@@ -166,12 +178,47 @@ function enrichMealsWithDealDiscounts(
         return ing;
       }
       const pct = dealEffectiveDiscountPercent(deal);
+      const ref = referenceListPriceFromDeal(deal);
       if (pct > 0) {
-        return { ...ing, discountPercent: pct };
+        return {
+          ...ing,
+          discountPercent: pct,
+          referenceListPrice: ing.referenceListPrice ?? ref,
+        };
       }
-      return ing;
+      return {
+        ...ing,
+        referenceListPrice: ing.referenceListPrice ?? ref,
+      };
     }),
   }));
+}
+
+function attachBundleSavings(meals: MealSuggestion[]): MealSuggestion[] {
+  return meals.map((meal) => {
+    let list = 0;
+    for (const ing of meal.matchedIngredients) {
+      if (ing.priceIsEstimated) {
+        continue;
+      }
+      const p = ing.price ?? 0;
+      const ref = ing.referenceListPrice;
+      list += ref != null && ref > 0 ? ref : p;
+    }
+    const sale = meal.estimatedTotalCost;
+    if (list <= 0 || list <= sale + 0.02) {
+      return meal;
+    }
+    const rawPct = Math.round(((list - sale) / list) * 100);
+    if (rawPct < 1) {
+      return meal;
+    }
+    return {
+      ...meal,
+      estimatedListPriceTotal: Number(list.toFixed(2)),
+      bundleSavingsPercent: Math.min(95, Math.max(1, rawPct)),
+    };
+  });
 }
 
 function mealHasDiscountedIngredient(meal: MealSuggestion): boolean {
@@ -356,6 +403,7 @@ function buildFinalMealList(
   let selected = selectDiverseBudgetMeals(withDiscount, recipes);
   selected = ensureMinMealCount(selected, withDiscount, MEAL_TARGET_MIN);
   selected = repairDiversity(selected, withDiscount, recipes);
+  selected = attachBundleSavings(selected);
 
   return selected
     .sort((a, b) => a.estimatedTotalCost - b.estimatedTotalCost)
@@ -387,6 +435,7 @@ function fallbackMatcherAll(recipes: Recipe[], deals: Deal[]) {
           store: deal.store,
           price: deal.price,
           discountPercent: dealEffectiveDiscountPercent(deal),
+          referenceListPrice: referenceListPriceFromDeal(deal),
           confidence: "medium" as const,
         };
       }

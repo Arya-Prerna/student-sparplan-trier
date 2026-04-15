@@ -423,6 +423,10 @@ export async function fetchTopDealsForMealMatching(zipCode: string = DEFAULT_ZIP
     "brot",
     "joghurt",
     "apfel",
+    "erbsen",
+    "karotten",
+    "tiefkuhl gemuese",
+    "zwiebel",
   ];
 
   const all = await Promise.all(

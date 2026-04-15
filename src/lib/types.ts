@@ -50,6 +50,11 @@ export interface MatchedIngredient {
   price?: number;
   /** From matched flyer deal when available (>0 means on discount). */
   discountPercent?: number;
+  /**
+   * Approx. reference shelf/strike total for this line (old price or inferred from % off).
+   * Used for “vs full price” and bundle savings; omitted when estimated.
+   */
+  referenceListPrice?: number;
   /** True when price is a placeholder because no deal matched (not a shelf price). */
   priceIsEstimated?: boolean;
   confidence: "high" | "medium" | "low";
@@ -68,6 +73,10 @@ export interface MealSuggestion {
   reason: string;
   /** True if any ingredient used an estimated fallback price. */
   includesEstimatedPrices?: boolean;
+  /** Sum of reference list prices for non-estimated matched lines (when calculable). */
+  estimatedListPriceTotal?: number;
+  /** Rough bundle savings vs reference list total (0–99). Omitted when not meaningful. */
+  bundleSavingsPercent?: number;
   nutritionalBenefit?: string;
 }
 

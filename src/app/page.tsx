@@ -295,9 +295,10 @@ export default function Home() {
               <div className="rounded-2xl border border-[#F9D5E5] bg-white p-4 shadow-md shadow-rose-100/40">
                 <h2 className="text-lg font-semibold text-[#4A2D3A]">Budget meals this week</h2>
                 <p className="mt-1 text-sm text-[#8B6B7B]">
-                  Eight curated meals for your postal code, cheapest first. Each includes at least one
-                  discounted ingredient; at least three are vegetarian or vegan. Totals use estimates
-                  when no offer matches an ingredient.
+                  Eight curated meals for your postal code, cheapest first. Each row shows flyer
+                  matches with per-line discount where Marktguru has it; cards may show an approximate
+                  bundle saving vs summed reference prices. At least three meals are vegetarian or
+                  vegan. Totals use estimates when no offer matches an ingredient.
                 </p>
               </div>
 
