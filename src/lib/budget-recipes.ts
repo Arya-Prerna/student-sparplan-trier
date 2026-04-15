@@ -34,13 +34,14 @@ function staplesToIngredients(staples: string) {
  */
 export async function loadBudgetRecipes(): Promise<Recipe[]> {
   const filePath = path.join(process.cwd(), "data", "budget-recipes.csv");
-  const content = await fs.readFile(filePath, "utf8");
+  const raw = await fs.readFile(filePath, "utf8");
+  const content = raw.replace(/^\uFEFF/, "");
   const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
 
   const recipes: Recipe[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (i === 0 && line.startsWith("ID,")) {
+    if (i === 0 && line.trimStart().startsWith("ID,")) {
       continue;
     }
     const parts = line.split(",").map((p) => p.trim());

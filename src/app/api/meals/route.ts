@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 
 import { loadBudgetRecipes } from "@/lib/budget-recipes";
-import { getCachedDealPoolForZip } from "@/lib/cached-deals";
+import { DEAL_POOL_REVALIDATE_SECONDS, getCachedDealPoolForZip } from "@/lib/cached-deals";
 import { matchRecipesWithDeals } from "@/lib/recipe-matcher";
 
 async function buildMealSuggestions(zipCode: string) {
@@ -11,18 +11,18 @@ async function buildMealSuggestions(zipCode: string) {
     getCachedDealPoolForZip(zipCode),
   ]);
 
-  const suggestions = await matchRecipesWithDeals(recipes, deals);
+  const suggestions = matchRecipesWithDeals(recipes, deals);
   return { suggestions, sourceDealsCount: deals.length };
 }
 
 export async function GET(request: NextRequest) {
-  const zipCode = request.nextUrl.searchParams.get("zipCode") ?? "54290";
+  const zipCode = (request.nextUrl.searchParams.get("zipCode") ?? "54290").trim();
 
   try {
     const getCachedMealPayload = unstable_cache(
       () => buildMealSuggestions(zipCode),
       ["meal-suggestions", zipCode],
-      { revalidate: 21600 }
+      { revalidate: DEAL_POOL_REVALIDATE_SECONDS }
     );
     const { suggestions, sourceDealsCount } = await getCachedMealPayload();
 

@@ -7,12 +7,17 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
   const store = request.nextUrl.searchParams.get("store")?.trim() ?? "";
   const category = request.nextUrl.searchParams.get("category")?.trim() ?? "";
-  const limit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "50", 10);
+  const zipCode = (request.nextUrl.searchParams.get("zipCode") ?? "54290").trim();
+  const rawLimit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "50", 10);
+  const limit = Number.isFinite(rawLimit) ? rawLimit : 50;
 
   try {
     const deals = q
-      ? await searchDeals(q, { limit: Math.min(Math.max(limit, 1), 80) })
-      : await fetchTopDealsForMealMatching();
+      ? await searchDeals(q, {
+          limit: Math.min(Math.max(limit, 1), 80),
+          zipCode,
+        })
+      : await fetchTopDealsForMealMatching(zipCode);
 
     const filtered = deals
       .filter((deal) => {

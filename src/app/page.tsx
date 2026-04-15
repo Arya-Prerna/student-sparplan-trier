@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { ShoppingBasket, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DealCard } from "@/components/DealCard";
 import { MealCard } from "@/components/MealCard";
 import { SearchBar } from "@/components/SearchBar";
 import { StoreGuide } from "@/components/StoreGuide";
 import { StoreFilter } from "@/components/StoreFilter";
-import { StudentBasket } from "@/components/StudentBasket";
 import { TabNav, type AppTab } from "@/components/TabNav";
 import { ZipCodeSelector } from "@/components/ZipCodeSelector";
 import type { Deal, MealSuggestion, StoreInfo } from "@/lib/types";
@@ -29,6 +28,10 @@ export default function Home() {
   const [storesLoading, setStoresLoading] = useState(false);
   const [mealsLoading, setMealsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [topDealsError, setTopDealsError] = useState<string | null>(null);
+  const [mealsError, setMealsError] = useState<string | null>(null);
+  const [mealsEmptyInfo, setMealsEmptyInfo] = useState<string | null>(null);
+  const searchSeq = useRef(0);
 
   const runSearch = useCallback(async () => {
     if (!query.trim()) {
@@ -36,6 +39,7 @@ export default function Home() {
       return;
     }
 
+    const seq = ++searchSeq.current;
     setSearchLoading(true);
     setError(null);
 
@@ -48,30 +52,54 @@ export default function Home() {
       if (!response.ok) {
         throw new Error(data.error ?? "Search failed");
       }
+      if (seq !== searchSeq.current) {
+        return;
+      }
       setDeals(data.deals ?? []);
     } catch (searchError) {
+      if (seq !== searchSeq.current) {
+        return;
+      }
       setError(searchError instanceof Error ? searchError.message : "Search failed");
       setDeals([]);
     } finally {
-      setSearchLoading(false);
+      if (seq === searchSeq.current) {
+        setSearchLoading(false);
+      }
     }
   }, [query, zipCode]);
 
   const loadMeals = useCallback(async () => {
     setMealsLoading(true);
+    setMealsError(null);
+    setMealsEmptyInfo(null);
     try {
       const response = await fetch(`/api/meals?zipCode=${encodeURIComponent(zipCode)}`, {
         cache: "no-store",
       });
       const data = (await response.json()) as {
         suggestions?: MealSuggestion[];
+        sourceDealsCount?: number;
+        error?: string;
+        details?: string;
       };
       if (!response.ok) {
-        throw new Error("Could not load meals.");
+        setMeals([]);
+        setMealsError(data.details ?? data.error ?? "Could not load meals.");
+        return;
       }
-      setMeals(data.suggestions ?? []);
-    } catch {
+      const list = data.suggestions ?? [];
+      setMeals(list);
+      if (list.length === 0) {
+        setMealsEmptyInfo(
+          (data.sourceDealsCount ?? 0) === 0
+            ? "No staple offer data for this postal code right now (upstream empty or unreachable)."
+            : "Offers were loaded, but no meal had a discounted matched staple under current rules."
+        );
+      }
+    } catch (loadErr) {
       setMeals([]);
+      setMealsError(loadErr instanceof Error ? loadErr.message : "Could not load meals.");
     } finally {
       setMealsLoading(false);
     }
@@ -103,18 +131,28 @@ export default function Home() {
 
   const loadTopDeals = useCallback(async () => {
     setTopDealsLoading(true);
+    setTopDealsError(null);
     try {
       const response = await fetch(
         `/api/top-deals?zipCode=${encodeURIComponent(zipCode)}`,
         { cache: "no-store" }
       );
-      const data = (await response.json()) as { deals?: Deal[] };
+      const data = (await response.json()) as {
+        deals?: Deal[];
+        error?: string;
+        details?: string;
+      };
       if (!response.ok) {
-        throw new Error("Could not load top deals.");
+        setTopDeals([]);
+        setTopDealsError(data.details ?? data.error ?? "Could not load top deals.");
+        return;
       }
       setTopDeals(data.deals ?? []);
-    } catch {
+    } catch (loadErr) {
       setTopDeals([]);
+      setTopDealsError(
+        loadErr instanceof Error ? loadErr.message : "Could not load top deals."
+      );
     } finally {
       setTopDealsLoading(false);
     }
@@ -200,7 +238,8 @@ export default function Home() {
                   Top Discounts ({zipCode})
                 </h2>
                 <p className="mt-1 text-sm text-[#8B6B7B]">
-                  Highest discount % near postal code {zipCode}, mixed across stores (up to 12 offers).
+                  Highest discount % near postal code {zipCode} (up to 12 offers), all chains included —
+                  sorted by discount only.
                 </p>
                 {topDealsLoading ? (
                   <p className="mt-3 text-sm text-[#8B6B7B]">Loading top deals…</p>
@@ -211,7 +250,12 @@ export default function Home() {
                     ))}
                   </div>
                 )}
-                {!topDealsLoading && topDeals.length === 0 ? (
+                {topDealsError ? (
+                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                    {topDealsError}
+                  </div>
+                ) : null}
+                {!topDealsLoading && !topDealsError && topDeals.length === 0 ? (
                   <p className="mt-3 text-sm text-[#8B6B7B]">No discounted offers found for this area.</p>
                 ) : null}
               </div>
@@ -243,7 +287,6 @@ export default function Home() {
                 <p className="text-sm text-[#8B6B7B]">No offers found. Try another search term.</p>
               ) : null}
 
-              <StudentBasket deals={deals} />
             </>
           ) : null}
 
@@ -268,10 +311,13 @@ export default function Home() {
                 </div>
               )}
 
-              {!mealsLoading && meals.length === 0 ? (
-                <p className="text-sm text-[#8B6B7B]">
-                  No meals available. Check deal data for your postal code.
-                </p>
+              {mealsError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                  {mealsError}
+                </div>
+              ) : null}
+              {!mealsLoading && !mealsError && meals.length === 0 && mealsEmptyInfo ? (
+                <p className="text-sm text-[#8B6B7B]">{mealsEmptyInfo}</p>
               ) : null}
             </>
           ) : null}
@@ -289,11 +335,17 @@ export default function Home() {
         <footer className="mt-10 rounded-2xl border border-[#F9D5E5] bg-white p-4 text-xs text-[#8B6B7B] shadow-sm">
           <p>
             More:{" "}
-            <Link className="font-medium text-[#D4607A] underline" href="/compare?product=milk">
+            <Link
+              className="font-medium text-[#D4607A] underline"
+              href={`/compare?product=milk&zipCode=${encodeURIComponent(zipCode)}`}
+            >
               Price compare
             </Link>{" "}
             ·{" "}
-            <Link className="font-medium text-[#D4607A] underline" href="/deals/lidl">
+            <Link
+              className="font-medium text-[#D4607A] underline"
+              href={`/deals/lidl?zipCode=${encodeURIComponent(zipCode)}`}
+            >
               Deals by store
             </Link>
           </p>

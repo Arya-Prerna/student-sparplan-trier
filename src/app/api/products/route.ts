@@ -4,12 +4,14 @@ import { fetchTopDealsForMealMatching, searchDeals } from "@/lib/marktguru";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
-  const limit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "30", 10);
+  const zipCode = (request.nextUrl.searchParams.get("zipCode") ?? "54290").trim();
+  const rawLimit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "30", 10);
+  const limit = Number.isFinite(rawLimit) ? rawLimit : 30;
 
   try {
     const deals = q
-      ? await searchDeals(q, { limit: Math.min(Math.max(limit, 1), 50) })
-      : await fetchTopDealsForMealMatching();
+      ? await searchDeals(q, { limit: Math.min(Math.max(limit, 1), 50), zipCode })
+      : await fetchTopDealsForMealMatching(zipCode);
 
     const products = [...new Map(deals.map((deal) => [deal.normalizedProductName, deal])).values()]
       .slice(0, Math.min(Math.max(limit, 1), 80))

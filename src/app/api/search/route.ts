@@ -5,8 +5,9 @@ import { expandSearchQueries, rankSearchDeals } from "@/lib/searchSynonyms";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
-  const zipCode = request.nextUrl.searchParams.get("zipCode") ?? "54290";
-  const limit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "24", 10);
+  const zipCode = (request.nextUrl.searchParams.get("zipCode") ?? "54290").trim();
+  const rawLimit = Number.parseInt(request.nextUrl.searchParams.get("limit") ?? "24", 10);
+  const limit = Number.isFinite(rawLimit) ? rawLimit : 24;
 
   if (!q) {
     return NextResponse.json(

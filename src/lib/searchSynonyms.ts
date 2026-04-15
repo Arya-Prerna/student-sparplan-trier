@@ -128,7 +128,11 @@ function relevanceScore(deal: Deal, stems: string[], queryNormalized: string): n
     score -= 120;
   }
 
-  if (queryNormalized.includes("milch") && name.includes("schokolade")) {
+  const querySuggestsPlainMilk =
+    queryNormalized.includes("milch") ||
+    queryNormalized.includes("milk") ||
+    stems.some((s) => s === "milch" || s === "milk");
+  if (querySuggestsPlainMilk && name.includes("schokolade")) {
     score -= 40;
   }
 
@@ -136,18 +140,25 @@ function relevanceScore(deal: Deal, stems: string[], queryNormalized: string): n
 }
 
 /**
- * Deduped deals re-ranked: strongest textual match first, then cheapest.
+ * Deduped deals: only rows that match the query text (relevance > 0), then **cheapest first**.
+ * If nothing scores above zero, falls back to the full list sorted by price (then relevance).
  */
 export function rankSearchDeals(deals: Deal[], originalQuery: string): Deal[] {
   const q = normalizeText(originalQuery);
   const stems = getSearchStems(originalQuery);
 
-  return [...deals].sort((a, b) => {
-    const sa = relevanceScore(a, stems, q);
+  const relevant = deals.filter((d) => relevanceScore(d, stems, q) > 0);
+  const pool = relevant.length > 0 ? relevant : deals;
+
+  return [...pool].sort((a, b) => {
+    if (a.price !== b.price) {
+      return a.price - b.price;
+    }
     const sb = relevanceScore(b, stems, q);
+    const sa = relevanceScore(a, stems, q);
     if (sb !== sa) {
       return sb - sa;
     }
-    return a.price - b.price;
+    return a.id.localeCompare(b.id);
   });
 }
