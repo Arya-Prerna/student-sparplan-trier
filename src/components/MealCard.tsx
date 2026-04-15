@@ -6,24 +6,12 @@ interface MealCardProps {
 }
 
 export function MealCard({ meal }: MealCardProps) {
-  const bundle = meal.bundleSavingsPercent;
-  const listTotal = meal.estimatedListPriceTotal;
-
   return (
     <article className="rounded-2xl border border-[#F9D5E5] bg-white p-4 shadow-md shadow-rose-100/30">
       <p className="mb-2 rounded-xl bg-[#FCE4EC] px-3 py-2 text-sm font-medium text-[#4A2D3A]">
         This week you can cook{" "}
         <span className="font-semibold text-[#D4607A]">{meal.recipeName}</span> for about{" "}
-        {formatCurrency(meal.estimatedTotalCost)} total
-        {bundle != null && listTotal != null ? (
-          <span className="font-semibold text-emerald-800">
-            {" "}
-            (~{bundle}% below ~{formatCurrency(listTotal)} at reference shelf/strike prices per
-            matched line).
-          </span>
-        ) : (
-          "."
-        )}
+        {formatCurrency(meal.estimatedTotalCost)} total.
       </p>
       {meal.includesEstimatedPrices ? (
         <p className="mb-2 text-xs text-[#8B6B7B]">
@@ -84,25 +72,15 @@ export function MealCard({ meal }: MealCardProps) {
               ) : (
                 <span>—</span>
               )}
-              <div className="text-right">
-                {ingredient.referenceListPrice != null &&
-                !ingredient.priceIsEstimated &&
-                ingredient.price != null &&
-                ingredient.referenceListPrice > ingredient.price + 0.01 ? (
-                  <p className="text-[10px] text-[#8B6B7B] line-through">
-                    {formatCurrency(ingredient.referenceListPrice)}
-                  </p>
-                ) : null}
-                <span className="font-semibold text-[#4A2D3A]">
-                  {typeof ingredient.price === "number" ? formatCurrency(ingredient.price) : "—"}
-                </span>
-              </div>
+              <span className="font-semibold text-[#4A2D3A]">
+                {typeof ingredient.price === "number" ? formatCurrency(ingredient.price) : "—"}
+              </span>
               {(ingredient.discountPercent ?? 0) > 0 && !ingredient.priceIsEstimated ? (
                 <span className="rounded-lg bg-[#B8E6C8] px-2 py-0.5 text-[10px] font-semibold text-emerald-900">
-                  −{ingredient.discountPercent}% on this line
+                  -{ingredient.discountPercent}% off
                 </span>
               ) : !ingredient.priceIsEstimated && ingredient.matchedProductName ? (
-                <span className="text-[10px] text-[#8B6B7B]">Shelf price (no promo on line)</span>
+                <span className="text-[10px] text-[#8B6B7B]">Regular price (no discount)</span>
               ) : null}
             </div>
           </div>

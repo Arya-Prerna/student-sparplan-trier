@@ -4,33 +4,9 @@ import type { Deal, MatchedIngredient, MealSuggestion, Recipe } from "@/lib/type
 const MEAL_TARGET_MIN = 8;
 const MEAL_TARGET_MAX = 8;
 
-/** Discount % from API or inferred from strike price (same idea as Marktguru raw mapping). */
-function dealEffectiveDiscountPercent(deal: Deal): number {
-  if (deal.discountPercent != null && deal.discountPercent > 0) {
-    return deal.discountPercent;
-  }
-  const old = deal.oldPrice;
-  if (old != null && old > deal.price) {
-    return Math.round(((old - deal.price) / old) * 100);
-  }
-  return 0;
-}
-
-/** Strike price or inferred pre-discount price for savings / bundle math. */
-function referenceListPriceFromDeal(deal: Deal): number {
-  if (deal.oldPrice != null && deal.oldPrice > deal.price) {
-    return deal.oldPrice;
-  }
-  const pct = dealEffectiveDiscountPercent(deal);
-  if (pct > 0 && pct < 100) {
-    return Number((deal.price / (1 - pct / 100)).toFixed(2));
-  }
-  return deal.price;
-}
-
 function buildIngredientTokens(name: string) {
   const normalized = normalizeText(name);
-  return normalized.split(" ").filter((token) => token.length >= 2);
+  return normalized.split(" ").filter((token) => token.length >= 3);
 }
 
 /** Placeholder EUR per ingredient when no current deal matches (keeps totals honest). */
@@ -68,7 +44,7 @@ function fallbackMatchIngredient(
   const tokens = buildIngredientTokens(ingredient);
   if (tokens.length === 0) {
     const norm = normalizeText(ingredient);
-    if (norm.length >= 2) {
+    if (norm.length >= 3) {
       tokens.push(norm);
     }
   }
@@ -146,7 +122,7 @@ function findDealForIngredient(ing: MatchedIngredient, deals: Deal[]): Deal | un
 
   const exact = deals.find(
     (d) =>
-      d.normalizedProductName === nameNorm &&
+      normalizeText(d.productName) === nameNorm &&
       normalizeText(d.store) === storeNorm &&
       Math.abs(d.price - price) < 0.05
   );
@@ -157,9 +133,9 @@ function findDealForIngredient(ing: MatchedIngredient, deals: Deal[]): Deal | un
   return deals.find(
     (d) =>
       normalizeText(d.store) === storeNorm &&
-      (d.normalizedProductName === nameNorm ||
-        d.normalizedProductName.includes(nameNorm) ||
-        nameNorm.includes(d.normalizedProductName))
+      (normalizeText(d.productName) === nameNorm ||
+        normalizeText(d.productName).includes(nameNorm) ||
+        nameNorm.includes(normalizeText(d.productName)))
   );
 }
 
@@ -174,51 +150,15 @@ function enrichMealsWithDealDiscounts(
         return ing;
       }
       const deal = findDealForIngredient(ing, deals);
-      if (!deal || ing.priceIsEstimated) {
-        return ing;
+      if (deal && (deal.discountPercent ?? 0) > 0) {
+        return { ...ing, discountPercent: deal.discountPercent };
       }
-      const pct = dealEffectiveDiscountPercent(deal);
-      const ref = referenceListPriceFromDeal(deal);
-      if (pct > 0) {
-        return {
-          ...ing,
-          discountPercent: pct,
-          referenceListPrice: ing.referenceListPrice ?? ref,
-        };
+      if (deal && !ing.priceIsEstimated) {
+        return { ...ing, discountPercent: deal.discountPercent };
       }
-      return {
-        ...ing,
-        referenceListPrice: ing.referenceListPrice ?? ref,
-      };
+      return ing;
     }),
   }));
-}
-
-function attachBundleSavings(meals: MealSuggestion[]): MealSuggestion[] {
-  return meals.map((meal) => {
-    let list = 0;
-    for (const ing of meal.matchedIngredients) {
-      if (ing.priceIsEstimated) {
-        continue;
-      }
-      const p = ing.price ?? 0;
-      const ref = ing.referenceListPrice;
-      list += ref != null && ref > 0 ? ref : p;
-    }
-    const sale = meal.estimatedTotalCost;
-    if (list <= 0 || list <= sale + 0.02) {
-      return meal;
-    }
-    const rawPct = Math.round(((list - sale) / list) * 100);
-    if (rawPct < 1) {
-      return meal;
-    }
-    return {
-      ...meal,
-      estimatedListPriceTotal: Number(list.toFixed(2)),
-      bundleSavingsPercent: Math.min(95, Math.max(1, rawPct)),
-    };
-  });
 }
 
 function mealHasDiscountedIngredient(meal: MealSuggestion): boolean {
@@ -269,17 +209,7 @@ function selectDiverseBudgetMeals(
     used.add(veganPick.recipeId);
   }
 
-  while (vegCount() < 3) {
-    if (out.length >= MEAL_TARGET_MAX) {
-      const dropIdx = out.findIndex(
-        (m) => !recipeIsVegetarianOrVegan(recipeMap.get(m.recipeId)!)
-      );
-      if (dropIdx === -1) {
-        break;
-      }
-      const [dropped] = out.splice(dropIdx, 1);
-      used.delete(dropped.recipeId);
-    }
+  while (vegCount() < 3 && out.length < MEAL_TARGET_MAX) {
     let added = false;
     for (const m of sorted) {
       if (used.has(m.recipeId)) {
@@ -344,7 +274,7 @@ function repairDiversity(
 ): MealSuggestion[] {
   const recipeMap = new Map(recipes.map((r) => [r.id, r]));
   const sorted = [...pool].sort((a, b) => a.estimatedTotalCost - b.estimatedTotalCost);
-  const out = [...selected];
+  let out = [...selected];
 
   const hasVegan = () => out.some((m) => recipeIsVegan(recipeMap.get(m.recipeId)!));
   if (!hasVegan()) {
@@ -364,7 +294,7 @@ function repairDiversity(
 
   const vegCount = () =>
     out.filter((m) => recipeIsVegetarianOrVegan(recipeMap.get(m.recipeId)!)).length;
-  while (vegCount() < 3) {
+  while (vegCount() < 3 && out.length < MEAL_TARGET_MAX) {
     const add = sorted.find(
       (m) =>
         recipeIsVegetarianOrVegan(recipeMap.get(m.recipeId)!) &&
@@ -403,7 +333,6 @@ function buildFinalMealList(
   let selected = selectDiverseBudgetMeals(withDiscount, recipes);
   selected = ensureMinMealCount(selected, withDiscount, MEAL_TARGET_MIN);
   selected = repairDiversity(selected, withDiscount, recipes);
-  selected = attachBundleSavings(selected);
 
   return selected
     .sort((a, b) => a.estimatedTotalCost - b.estimatedTotalCost)
@@ -434,8 +363,7 @@ function fallbackMatcherAll(recipes: Recipe[], deals: Deal[]) {
           matchedProductName: deal.productName,
           store: deal.store,
           price: deal.price,
-          discountPercent: dealEffectiveDiscountPercent(deal),
-          referenceListPrice: referenceListPriceFromDeal(deal),
+          discountPercent: deal.discountPercent,
           confidence: "medium" as const,
         };
       }
@@ -479,9 +407,9 @@ function fallbackMatcherAll(recipes: Recipe[], deals: Deal[]) {
 }
 
 /** Budget meals: deterministic matching only (CSV catalog + Marktguru deals). */
-export function matchRecipesWithDeals(recipes: Recipe[], deals: Deal[]): MealSuggestion[] {
+export async function matchRecipesWithDeals(recipes: Recipe[], deals: Deal[]) {
   if (recipes.length === 0 || deals.length === 0) {
-    return [];
+    return [] as MealSuggestion[];
   }
   return buildFinalMealList(recipes, deals);
 }

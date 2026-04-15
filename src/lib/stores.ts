@@ -70,13 +70,10 @@ function mapElementsToStores(
 
     const displayName = normalizeBrand(name ?? brand ?? "Supermarket");
     const slug = slugify(displayName);
-    const metadata = meta.find((entry) => {
-      const entrySlug = entry.slug?.trim();
-      if (entrySlug && normalizeText(entrySlug) === normalizeText(slug)) {
-        return true;
-      }
-      return slugify(entry.name) === slug;
-    });
+    const metadata = meta.find(
+      (entry) =>
+        normalizeText(entry.slug) === slug || normalizeText(entry.name) === slug
+    );
 
     const postcode = tags["addr:postcode"]?.trim();
 

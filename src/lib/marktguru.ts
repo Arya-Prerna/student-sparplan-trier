@@ -354,21 +354,6 @@ export function pickDiverseTopDeals(
   return out;
 }
 
-/** Top strip: highest discount % first globally (no per-store cap). Tie-break: lower price, then id. */
-export function pickTopDealsByDiscountPercent(deals: Deal[], limit: number): Deal[] {
-  const sorted = [...deals].sort((a, b) => {
-    const byDisc = (b.discountPercent ?? 0) - (a.discountPercent ?? 0);
-    if (byDisc !== 0) {
-      return byDisc;
-    }
-    if (a.price !== b.price) {
-      return a.price - b.price;
-    }
-    return a.id.localeCompare(b.id);
-  });
-  return sorted.slice(0, Math.max(0, limit));
-}
-
 export async function searchDeals(
   query: string,
   options: SearchDealsOptions = {}
@@ -423,10 +408,6 @@ export async function fetchTopDealsForMealMatching(zipCode: string = DEFAULT_ZIP
     "brot",
     "joghurt",
     "apfel",
-    "erbsen",
-    "karotten",
-    "tiefkuhl gemuese",
-    "zwiebel",
   ];
 
   const all = await Promise.all(
@@ -434,7 +415,8 @@ export async function fetchTopDealsForMealMatching(zipCode: string = DEFAULT_ZIP
   );
 
   const flattened = dedupeDeals(all.flat());
-  /** Full staple union for meal matching (no discount-only truncation — avoids empty meals when promos lack %). */
-  return flattened;
+  return flattened
+    .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))
+    .slice(0, 120);
 }
 

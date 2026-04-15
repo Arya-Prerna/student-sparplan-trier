@@ -1,0 +1,15 @@
+---
+description: After substantive changes, commit, push to Git, and deploy to Vercel production without asking.
+alwaysApply: true
+---
+
+# Git push and Vercel deploy (automatic)
+
+When a coding task is complete and changes affect the app (source, config, or runtime data):
+
+1. Run `npm run build` when the change could break the build.
+2. Stage and commit with a clear message. Never commit `.env`, `.env.local`, secrets, `node_modules`, or build artifacts like `*.tsbuildinfo`.
+3. `git push` the current branch to `origin` (typically `main`).
+4. From the project root (`student-sparplan-trier`), run `npx vercel --prod --yes` to deploy production.
+
+Do **not** ask the user for permission to push or deploy unless they have clearly opted out for that session. If push or Vercel fails (auth/network), report the error and the command to retry.
