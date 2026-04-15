@@ -17,7 +17,7 @@ export function getCachedDealPoolForZip(zipCode: string) {
   const z = trimZip(zipCode);
   return unstable_cache(
     () => fetchTopDealsForMealMatching(z),
-    ["marktguru-deal-pool", z],
+    ["marktguru-deal-pool-v2", z],
     { revalidate: DEAL_POOL_REVALIDATE_SECONDS }
   )();
 }
