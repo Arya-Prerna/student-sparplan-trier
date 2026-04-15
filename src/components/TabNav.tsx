@@ -1,13 +1,15 @@
 "use client";
 
+import { ChefHat, MapPin, Search } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 export type AppTab = "search" | "meals" | "stores";
 
-const TABS: Array<{ id: AppTab; label: string; description: string }> = [
-  { id: "search", label: "Find deals", description: "Search current offers" },
-  { id: "meals", label: "Budget meals", description: "Eight meals, cheapest first" },
-  { id: "stores", label: "Store guide", description: "Hours & addresses" },
+const TABS: Array<{ id: AppTab; label: string; description: string; icon: React.ElementType }> = [
+  { id: "search", label: "Find deals", description: "Search current offers", icon: Search },
+  { id: "meals", label: "Budget meals", description: "Eight meals, cheapest first", icon: ChefHat },
+  { id: "stores", label: "Store guide", description: "Hours & addresses", icon: MapPin },
 ];
 
 interface TabNavProps {
@@ -17,25 +19,33 @@ interface TabNavProps {
 
 export function TabNav({ value, onChange }: TabNavProps) {
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[#F9D5E5] bg-white p-3 shadow-md shadow-rose-100/50 sm:grid-cols-3">
+    <div className="grid grid-cols-3 gap-2 rounded-3xl border border-[#F9D5E5] bg-white p-2 shadow-[0_4px_20px_rgba(212,96,122,0.08)]">
       {TABS.map((tab) => {
         const active = tab.id === value;
+        const Icon = tab.icon;
         return (
           <button
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
             className={cn(
-              "rounded-xl border px-4 py-3 text-left transition",
+              "group relative flex flex-col items-center gap-1.5 rounded-2xl px-3 py-3 text-center transition-all duration-200 cursor-pointer",
               active
-                ? "border-[#D4607A] bg-[#D4607A] text-white shadow-md"
-                : "border-[#F9D5E5] bg-[#FFF5F7] text-[#4A2D3A] hover:bg-[#FCE4EC]"
+                ? "bg-gradient-to-br from-[#D4607A] to-[#E8879C] text-white shadow-[0_4px_16px_rgba(212,96,122,0.35)]"
+                : "text-[#4A2D3A] hover:bg-[#FFF5F7]"
             )}
           >
-            <p className="text-sm font-semibold">{tab.label}</p>
-            <p className={cn("text-xs", active ? "text-rose-100" : "text-[#8B6B7B]")}>
+            <Icon
+              className={cn(
+                "h-5 w-5 transition-transform duration-200 group-hover:scale-110",
+                active ? "text-white" : "text-[#D4607A]"
+              )}
+              aria-hidden
+            />
+            <span className="text-xs font-semibold leading-tight">{tab.label}</span>
+            <span className={cn("hidden text-[10px] leading-tight sm:block", active ? "text-rose-100" : "text-[#8B6B7B]")}>
               {tab.description}
-            </p>
+            </span>
           </button>
         );
       })}
