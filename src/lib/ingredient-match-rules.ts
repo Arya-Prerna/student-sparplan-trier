@@ -101,6 +101,20 @@ const SPINACH_RULE: IngredientMatchRule = {
   forbiddenSubstrings: ["spinatsaft", "smoothie", "drink"],
 };
 
+const CABBAGE_RULE: IngredientMatchRule = {
+  appliesTo: (n) => n.includes("cabbage") || n.includes("kohl") || n.includes("kraut"),
+  positiveWords: ["kohl", "weisskohl", "rotkohl", "blaukraut", "kraut", "wirsingkohl", "spitzkohl", "chinakohl"],
+  forbiddenWords: [],
+  forbiddenSubstrings: ["sauerkraut", "krauter", "kraeuter", "gewuerz"],
+};
+
+const ONION_RULE: IngredientMatchRule = {
+  appliesTo: (n) => n.includes("onion") || n.includes("zwiebel"),
+  positiveWords: ["zwiebeln", "zwiebel", "speisezwiebeln"],
+  forbiddenWords: [],
+  forbiddenSubstrings: ["zwiebelbrot", "zwiebelkuchen"],
+};
+
 const RULES: IngredientMatchRule[] = [
   RICE_RULE,
   PEAS_RULE,
@@ -108,6 +122,8 @@ const RULES: IngredientMatchRule[] = [
   EGG_RULE,
   CHICKPEA_RULE,
   SPINACH_RULE,
+  CABBAGE_RULE,
+  ONION_RULE,
 ];
 
 export function pickRuleForIngredient(ingredientNormalized: string): IngredientMatchRule | null {

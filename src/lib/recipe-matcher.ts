@@ -383,14 +383,15 @@ function attachBundleSavings(meals: MealSuggestion[]): MealSuggestion[] {
   });
 }
 
-/** At least one matched line has a meaningful discount (not placeholder pricing). */
-function mealHasDiscountedIngredient(meal: MealSuggestion): boolean {
-  return meal.matchedIngredients.some((ing) => {
-    if (ing.priceIsEstimated) {
-      return false;
-    }
-    return (ing.discountPercent ?? 0) > 5;
-  });
+/**
+ * A meal qualifies if at least one ingredient is matched to a real store offer
+ * (not a placeholder estimate). Having an explicit discountPercent is a bonus
+ * but not required — Marktguru flyer items are promotional by nature.
+ */
+function mealHasRealDealIngredient(meal: MealSuggestion): boolean {
+  return meal.matchedIngredients.some(
+    (ing) => !ing.priceIsEstimated && !!ing.matchedProductName
+  );
 }
 
 function recipeIsVegan(recipe: Recipe): boolean {
@@ -562,7 +563,7 @@ function buildFinalMealList(recipes: Recipe[], deals: Deal[]): MealSuggestion[] 
   const fallbackEnriched = enrichMealsWithDealDiscounts(fallbackProcessed, deals);
 
   const merged = dedupeMealsByRecipeKeepCheapest(fallbackEnriched);
-  const withDiscount = merged.filter(mealHasDiscountedIngredient);
+  const withDiscount = merged.filter(mealHasRealDealIngredient);
 
   let selected = selectDiverseBudgetMeals(withDiscount, recipes);
   selected = ensureMinMealCount(selected, withDiscount, MEAL_TARGET_MIN);
