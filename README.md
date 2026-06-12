@@ -5,7 +5,6 @@ An AI-powered financial planning tool specifically designed for students living 
 ## Live Demo
 **[View Live Project](https://student-sparplan-trier.vercel.app)**
 
-
 ![App Screenshot](./screenshots/App-screenshot1.png)
 
 An AI-powered financial planning tool...
